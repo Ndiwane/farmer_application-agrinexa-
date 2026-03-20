@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "956551233387",
+    "project_id": "agrinexa-ad9de",
+    "storage_bucket": "agrinexa-ad9de.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:956551233387:android:04da86707adfe06bea962e",
+        "android_client_info": {
+          "package_name": "com.timothy.agrinexa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "956551233387-98i8ohh9idrk54q19k9k9e07dqiarrln.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.timothy.agrinexa",
+            "certificate_hash": "b85967ae0213a6f172b83aaebb44f84b721b79d1"
+          }
+        },
+        {
+          "client_id": "956551233387-p82vbfmqmnaa8ju9roartsigqs8p70n3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2VP_AeLIxFarZE_lmZgSicV6Nr3-H2p4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "956551233387-p82vbfmqmnaa8ju9roartsigqs8p70n3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "956551233387-udg0b1nsiii4dlmp4or9nq0vfjv6qjl6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.agrinexa"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
