@@ -37,10 +37,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _sellerNetwork;
   bool _sellerHasPayment = false;
 
+  // ── Keys & Server URL ──────────────────────────────────────────────────────
   final String _publicKey =
       'pk.uwjbNofcQJKSkxnGGy3U765lwyXZVv4uSMMUiZ79bcfuPxrnCn9e42dDpZSoo66Z1XMNM9nGigzVjxtt5vbo3RcGYoH7bVqgkJtjlnyHO8eGyZDI9vMqE5k9rTLL4';
-  final String _privateKey =
-      'sk.JUuM6bpBuAFg3ZDoMnBrEqdGcagtS31IldwGzGBeUGw8Gif4Gapn8tVadIUUFhwigHnzQgY9TpzFaTBJJhmNZzAnezlIbTz4zCZ0Af7GlejC5spCWzEeY4Ilt1fYJ';
+
+  // ← Your Render server handles the transfer to seller
+  final String _serverUrl = 'http://13.63.87.27:3000';
 
   @override
   void initState() {
@@ -78,26 +80,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  // Poll Notchpay until payment reaches a terminal status
+  // Poll Notchpay until payment reaches terminal status
   Future<String> _verifyPayment(String reference) async {
     for (int i = 0; i < 12; i++) {
       await Future.delayed(const Duration(seconds: 5));
       try {
+        // Verify through our server
         final res = await http.get(
-          Uri.parse('https://api.notchpay.co/payments/$reference'),
-          headers: {
-            'Authorization': _publicKey,
-            'Accept': 'application/json',
-          },
+          Uri.parse('$_serverUrl/verify/$reference'),
         );
         final data = json.decode(res.body);
-        final status =
-            (data['transaction']?['status'] ?? '').toString().toLowerCase();
+        final status = (data['data']?['transaction']?['status'] ?? '')
+            .toString()
+            .toLowerCase();
         debugPrint('Poll $i: $status');
+
         if (status == 'complete') return 'complete';
         if (status == 'failed') return 'failed';
         if (status == 'canceled') return 'canceled';
         if (status == 'expired') return 'expired';
+
         final msg = (data['message'] ?? '').toString().toLowerCase();
         if (msg.contains('insufficient') ||
             msg.contains('solde') ||
@@ -111,46 +113,38 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return 'timeout';
   }
 
-  // Transfer money from Notchpay balance to seller's mobile money
+  // Transfer to seller via EC2 (fixed IP)
   Future<bool> _transferToSeller(String sellerPhone, int amount) async {
-  try {
-    final phone = sellerPhone.startsWith('237')
-        ? sellerPhone
-        : '237$sellerPhone';
-    final res = await http.post(
-      Uri.parse('https://api.notchpay.co/transfers'),
-      headers: {
-        'Authorization': _publicKey,
-        'X-Grant': _privateKey,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: json.encode({
-        'amount': amount,
-        'currency': 'XAF',
-        'description': 'Payment for ${widget.productName} - AgriNexa',
-        'reference': 'transfer_${DateTime.now().millisecondsSinceEpoch}',
-        'destination': phone,
-        'channel': _sellerNetwork == 'mtn' ? 'cm.mtn' : 'cm.orange',
-      }),
-    );
+    try {
+      final phone = sellerPhone.startsWith('237')
+          ? sellerPhone
+          : '237$sellerPhone';
 
-    // ← ADD THIS
-    debugPrint('=== TRANSFER RESPONSE ===');
-    debugPrint('Status: ${res.statusCode}');
-    debugPrint('Body: ${res.body}');
-    debugPrint('=========================');
+      final res = await http.post(
+        Uri.parse('$_serverUrl/transfer'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'amount': amount,
+          'destination': phone,
+          'channel': _sellerNetwork == 'mtn' ? 'cm.mtn' : 'cm.orange',
+          'description': 'Payment for ${widget.productName} - AgriNexa',
+          'reference': 'transfer_${DateTime.now().millisecondsSinceEpoch}',
+        }),
+      );
 
-    final data = json.decode(res.body);
-    return res.statusCode == 200 || res.statusCode == 201 || res.statusCode == 202;
-  } catch (e) {
-    debugPrint('Transfer error: $e');
-    return false;
+      final data = json.decode(res.body);
+      debugPrint('Transfer response: ${res.statusCode} - $data');
+
+      return data['success'] == true;
+    } catch (e) {
+      debugPrint('Transfer error: $e');
+      return false;
+    }
   }
-}
 
   Future<void> _initiatePayment() async {
     final phone = _phoneController.text.trim();
+
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Please enter your phone number'),
@@ -178,9 +172,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final sellerPhone = _sellerPhone!.startsWith('237')
           ? _sellerPhone!
           : '237$_sellerPhone';
-      final reference = 'agrinexa_${DateTime.now().millisecondsSinceEpoch}';
+      final reference =
+          'agrinexa_${DateTime.now().millisecondsSinceEpoch}';
 
-      // ── 1. Initialize ────────────────────────────────────────────
+      // ── 1. Initialize payment ────────────────────────────────────
       final initRes = await http.post(
         Uri.parse('https://api.notchpay.co/payments/initialize'),
         headers: {
@@ -197,13 +192,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'reference': reference,
         }),
       );
+
       final initData = json.decode(initRes.body);
       if (initRes.statusCode != 200 && initRes.statusCode != 201) {
         throw Exception(initData['message'] ?? 'Failed to initialize');
       }
       final payRef = initData['transaction']['reference'] ?? reference;
 
-      // ── 2. Charge buyer ──────────────────────────────────────────
+      // ── 2. Charge buyer's mobile money ───────────────────────────
       final payRes = await http.post(
         Uri.parse('https://api.notchpay.co/payments/$payRef'),
         headers: {
@@ -212,12 +208,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'Accept': 'application/json',
         },
         body: json.encode({
-          'channel': _selectedNetwork == 'mtn' ? 'cm.mtn' : 'cm.orange',
+          'channel':
+              _selectedNetwork == 'mtn' ? 'cm.mtn' : 'cm.orange',
           'data': {'phone': buyerPhone},
         }),
       );
+
       final payData = json.decode(payRes.body);
-      final payMsg = (payData['message'] ?? '').toString().toLowerCase();
+      final payMsg =
+          (payData['message'] ?? '').toString().toLowerCase();
 
       if (payMsg.contains('insufficient') ||
           payMsg.contains('solde') ||
@@ -244,7 +243,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final finalStatus = await _verifyPayment(payRef);
       if (mounted) Navigator.pop(context);
 
-      if (finalStatus == 'insufficient_funds' || finalStatus == 'failed') {
+      if (finalStatus == 'insufficient_funds' ||
+          finalStatus == 'failed') {
         throw Exception(
             '❌ Payment failed. Check your ${_selectedNetwork.toUpperCase()} balance and try again.');
       }
@@ -252,7 +252,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         throw Exception('Payment was cancelled. Please try again.');
       }
 
-      // ── 4. Transfer to seller ────────────────────────────────────
+      // ── 4. Transfer to seller via Render server ──────────────────
       bool transferred = false;
       if (finalStatus == 'complete') {
         if (mounted) {
@@ -262,7 +262,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             builder: (_) => const _TransferringDialog(),
           );
         }
-        transferred = await _transferToSeller(sellerPhone, widget.total.toInt());
+        transferred =
+            await _transferToSeller(sellerPhone, widget.total.toInt());
         if (mounted) Navigator.pop(context);
       }
 
@@ -279,17 +280,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'currency': 'XAF',
         'reference': payRef,
         'paymentStatus': finalStatus,
-        'transferStatus': transferred ? 'transferred' : 'pending_transfer',
+        'transferStatus':
+            transferred ? 'transferred' : 'pending_transfer',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
+      // ── 6. Update order ──────────────────────────────────────────
       await FirebaseFirestore.instance
           .collection('orders')
           .doc(widget.orderId)
           .update({
-        'paymentStatus': finalStatus == 'complete' ? 'paid' : 'pending',
+        'paymentStatus':
+            finalStatus == 'complete' ? 'paid' : 'pending',
         'paymentReference': payRef,
-        'status': finalStatus == 'complete' ? 'Confirmed' : 'Pending',
+        'status':
+            finalStatus == 'complete' ? 'Confirmed' : 'Pending',
         'transferToSeller': transferred,
       });
 
@@ -327,8 +332,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -351,8 +356,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const SizedBox(height: 16),
             Text(
               success ? 'Payment Successful!' : 'Payment Failed',
-              style:
-                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              style: const TextStyle(
+                  fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(message,
@@ -394,7 +399,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       body: _isLoadingSellerInfo
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary))
+              child: CircularProgressIndicator(
+                  color: AppColors.primary))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -404,41 +410,52 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).appBarTheme.backgroundColor,
+                      color: Theme.of(context)
+                          .appBarTheme
+                          .backgroundColor,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Column(children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Product',
                               style: TextStyle(
-                                  fontSize: 13, color: AppColors.textMedium)),
+                                  fontSize: 13,
+                                  color: AppColors.textMedium)),
                           Text(widget.productName,
                               style: const TextStyle(
-                                  fontWeight: FontWeight.w600, fontSize: 13)),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13)),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Seller',
                               style: TextStyle(
-                                  fontSize: 13, color: AppColors.textMedium)),
+                                  fontSize: 13,
+                                  color: AppColors.textMedium)),
                           Text(widget.sellerName,
                               style: const TextStyle(
-                                  fontWeight: FontWeight.w600, fontSize: 13)),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13)),
                         ],
                       ),
                       const Divider(height: 20),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Total Amount',
                               style: TextStyle(
-                                  fontWeight: FontWeight.w700, fontSize: 15)),
-                          Text('${widget.total.toStringAsFixed(0)} FCFA',
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15)),
+                          Text(
+                              '${widget.total.toStringAsFixed(0)} FCFA',
                               style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 16,
@@ -486,7 +503,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Network
+                  // Network selector
                   const Text('Your Payment Network',
                       style: TextStyle(
                           fontWeight: FontWeight.w700, fontSize: 15)),
@@ -509,7 +526,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               color: _selectedNetwork == 'mtn'
                                   ? const Color(0xFFFFCC00)
                                   : AppColors.divider,
-                              width: _selectedNetwork == 'mtn' ? 2 : 1,
+                              width:
+                                  _selectedNetwork == 'mtn' ? 2 : 1,
                             ),
                           ),
                           child: Column(children: [
@@ -517,7 +535,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               width: 48, height: 48,
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFFCC00),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius:
+                                    BorderRadius.circular(10),
                               ),
                               child: const Center(
                                 child: Text('MTN',
@@ -540,8 +559,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () =>
-                            setState(() => _selectedNetwork = 'orange'),
+                        onTap: () => setState(
+                            () => _selectedNetwork = 'orange'),
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -555,8 +574,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               color: _selectedNetwork == 'orange'
                                   ? const Color(0xFFFF6600)
                                   : AppColors.divider,
-                              width:
-                                  _selectedNetwork == 'orange' ? 2 : 1,
+                              width: _selectedNetwork == 'orange'
+                                  ? 2
+                                  : 1,
                             ),
                           ),
                           child: Column(children: [
@@ -564,7 +584,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               width: 48, height: 48,
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFF6600),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius:
+                                    BorderRadius.circular(10),
                               ),
                               child: const Center(
                                 child: Text('OM',
@@ -587,7 +608,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ]),
                   const SizedBox(height: 20),
 
-                  // Phone
+                  // Phone input
                   const Text('Your Mobile Money Number',
                       style: TextStyle(
                           fontWeight: FontWeight.w700, fontSize: 15)),
@@ -610,6 +631,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
                   const SizedBox(height: 8),
 
+                  // Balance warning
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -634,7 +656,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(height: 28),
 
                   ElevatedButton(
-                    onPressed: _isProcessing ? null : _initiatePayment,
+                    onPressed:
+                        _isProcessing ? null : _initiatePayment,
                     child: _isProcessing
                         ? const SizedBox(
                             height: 22, width: 22,
@@ -652,7 +675,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       const SizedBox(width: 4),
                       Text('Secured by Notchpay',
                           style: TextStyle(
-                              fontSize: 12, color: AppColors.textLight)),
+                              fontSize: 12,
+                              color: AppColors.textLight)),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -663,7 +687,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 }
 
-// ── Dialogs ───────────────────────────────────────────────────────────────────
+// ── Waiting dialog ────────────────────────────────────────────────────────────
 class _WaitingDialog extends StatefulWidget {
   const _WaitingDialog();
   @override
@@ -684,39 +708,48 @@ class _WaitingDialogState extends State<_WaitingDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16)),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         const CircularProgressIndicator(color: AppColors.primary),
         const SizedBox(height: 20),
         const Text('Waiting for Confirmation',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            style:
+                TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
         const SizedBox(height: 8),
-        const Text('Check your phone and enter\nyour PIN to confirm payment.',
+        const Text(
+            'Check your phone and enter\nyour PIN to confirm payment.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
+            style: TextStyle(
+                fontSize: 13, color: AppColors.textMedium)),
         const SizedBox(height: 12),
         Text('${_seconds}s',
-            style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+            style: const TextStyle(
+                fontSize: 12, color: AppColors.textLight)),
       ]),
     );
   }
 }
 
+// ── Transferring dialog ───────────────────────────────────────────────────────
 class _TransferringDialog extends StatelessWidget {
   const _TransferringDialog();
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16)),
       content: const Column(mainAxisSize: MainAxisSize.min, children: [
         CircularProgressIndicator(color: AppColors.primary),
         SizedBox(height: 20),
         Text('Sending to Seller...',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            style:
+                TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
         SizedBox(height: 8),
         Text('Transferring payment to\nthe seller\'s mobile money.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
+            style: TextStyle(
+                fontSize: 13, color: AppColors.textMedium)),
       ]),
     );
   }
