@@ -50,13 +50,30 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
     setState(() => _isConfirming = true);
     try {
       final user = FirebaseAuth.instance.currentUser;
-      final orderRef =
-          await FirebaseFirestore.instance.collection('orders').add({
+
+      // Fetch seller's phone number to save with order
+      // This allows buyer to contact seller directly from order history
+      String sellerPhone = '';
+      if (widget.sellerId != null && widget.sellerId!.isNotEmpty) {
+        final sellerDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.sellerId)
+            .get();
+        if (sellerDoc.exists) {
+          sellerPhone = sellerDoc.data()?['phone'] ?? '';
+        }
+      }
+
+      // Create the order in Firestore
+      final orderRef = await FirebaseFirestore.instance
+          .collection('orders')
+          .add({
         'buyerId': user?.uid,
         'buyerName': user?.displayName ?? 'Unknown',
         'buyerEmail': user?.email ?? '',
         'sellerId': widget.sellerId ?? '',
         'sellerName': widget.sellerName,
+        'sellerPhone': sellerPhone, // ← Seller contact saved for buyer protection
         'productId': widget.productId ?? '',
         'productName': widget.productName,
         'productImage': widget.productImage,
@@ -68,11 +85,13 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
         'deliveryFee': _deliveryFee,
         'subtotal': _subtotal,
         'total': _total,
-        'status': 'Pending',
+        'status': 'Pending',          // Order status: Pending→Confirmed→Shipped→Delivered
         'paymentStatus': 'unpaid',
         'createdAt': FieldValue.serverTimestamp(),
+        'statusUpdatedAt': FieldValue.serverTimestamp(),
       });
 
+      // Notify seller of new order
       if (widget.sellerId != null && widget.sellerId!.isNotEmpty) {
         await NotificationService.sendNotificationToUser(
           userId: widget.sellerId!,
@@ -87,13 +106,12 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
         Navigator.pushReplacement(
           context,
           AppRouter.slide(PaymentScreen(
-              orderId: orderRef.id,
-              productName: widget.productName,
-              sellerName: widget.sellerName,
-              sellerId: widget.sellerId ?? '',
-              total: _total,
-            ),
-          ),
+            orderId: orderRef.id,
+            productName: widget.productName,
+            sellerName: widget.sellerName,
+            sellerId: widget.sellerId ?? '',
+            total: _total,
+          )),
         );
       }
     } catch (e) {
@@ -115,7 +133,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: BackButton(),
+        leading: const BackButton(),
         title: const Text('Order Summary'),
       ),
       body: SingleChildScrollView(
@@ -135,12 +153,10 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
                     borderRadius: BorderRadius.circular(10),
                     child: Image.network(
                       widget.productImage,
-                      width: 70,
-                      height: 70,
+                      width: 70, height: 70,
                       fit: BoxFit.cover,
                       errorBuilder: (_, _, _) => Container(
-                        width: 70,
-                        height: 70,
+                        width: 70, height: 70,
                         color: AppColors.primaryLighter,
                         child: const Icon(Icons.image_outlined,
                             color: AppColors.primary),
@@ -172,7 +188,8 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            // Quantity selector with dynamic unit
+
+            // Quantity selector
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -217,6 +234,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
               ),
             ),
             const SizedBox(height: 16),
+
             // Delivery option
             Container(
               padding: const EdgeInsets.all(14),
@@ -256,6 +274,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
               ),
             ),
             const SizedBox(height: 16),
+
             // Price breakdown
             Container(
               padding: const EdgeInsets.all(14),
@@ -266,15 +285,17 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
               child: Column(
                 children: [
                   _PriceRow(
-                      label:
-                          '$_quantity ${widget.unit}(s) × ${_basePrice.toStringAsFixed(0)} FCFA',
-                      value: '${_subtotal.toStringAsFixed(0)} FCFA'),
+                    label:
+                        '$_quantity ${widget.unit}(s) × ${_basePrice.toStringAsFixed(0)} FCFA',
+                    value: '${_subtotal.toStringAsFixed(0)} FCFA',
+                  ),
                   const SizedBox(height: 8),
                   _PriceRow(
-                      label: 'Delivery fee',
-                      value: _deliveryFee == 0
-                          ? 'Free'
-                          : '${_deliveryFee.toStringAsFixed(0)} FCFA'),
+                    label: 'Delivery fee',
+                    value: _deliveryFee == 0
+                        ? 'Free'
+                        : '${_deliveryFee.toStringAsFixed(0)} FCFA',
+                  ),
                   const Divider(height: 20),
                   _PriceRow(
                     label: 'Total',
@@ -285,12 +306,12 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
               ),
             ),
             const SizedBox(height: 24),
+
             ElevatedButton(
               onPressed: _isConfirming ? null : _proceedToPayment,
               child: _isConfirming
                   ? const SizedBox(
-                      height: 22,
-                      width: 22,
+                      height: 22, width: 22,
                       child: CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2))
                   : const Text('Proceed to Payment'),
@@ -312,8 +333,7 @@ class _QuantityButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 32,
-        height: 32,
+        width: 32, height: 32,
         decoration: BoxDecoration(
           color: AppColors.primaryLighter,
           borderRadius: BorderRadius.circular(8),
@@ -346,8 +366,7 @@ class _DeliveryOption extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color:
-                selected ? AppColors.primaryLighter : AppColors.background,
+            color: selected ? AppColors.primaryLighter : AppColors.background,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: selected ? AppColors.primary : AppColors.divider,
@@ -358,7 +377,8 @@ class _DeliveryOption extends StatelessWidget {
             children: [
               Icon(icon,
                   size: 20,
-                  color: selected ? AppColors.primary : AppColors.textLight),
+                  color:
+                      selected ? AppColors.primary : AppColors.textLight),
               const SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,7 +419,8 @@ class _PriceRow extends StatelessWidget {
           child: Text(label,
               style: TextStyle(
                   fontSize: 13,
-                  fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
+                  fontWeight:
+                      isBold ? FontWeight.w700 : FontWeight.w400,
                   color: isBold ? null : AppColors.textMedium)),
         ),
         Text(value,

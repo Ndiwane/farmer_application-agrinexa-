@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:agrinexa/l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'marketplace_screen.dart';
 import 'sell_product_screen.dart';
@@ -24,6 +25,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get translations using official Flutter localization
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
@@ -42,23 +46,23 @@ class _HomeScreenState extends State<HomeScreen> {
               fontWeight: FontWeight.w600, fontSize: 11),
           unselectedLabelStyle: const TextStyle(fontSize: 11),
           elevation: 0,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home_rounded),
-                label: 'Home'),
+                icon: const Icon(Icons.home_outlined),
+                activeIcon: const Icon(Icons.home_rounded),
+                label: l10n.navHome),
             BottomNavigationBarItem(
-                icon: Icon(Icons.add_circle_outline_rounded),
-                activeIcon: Icon(Icons.add_circle_rounded),
-                label: 'Sell product'),
+                icon: const Icon(Icons.add_circle_outline_rounded),
+                activeIcon: const Icon(Icons.add_circle_rounded),
+                label: l10n.navSell),
             BottomNavigationBarItem(
-                icon: Icon(Icons.list_alt_outlined),
-                activeIcon: Icon(Icons.list_alt_rounded),
-                label: 'Listing'),
+                icon: const Icon(Icons.list_alt_outlined),
+                activeIcon: const Icon(Icons.list_alt_rounded),
+                label: l10n.navListing),
             BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline_rounded),
-                activeIcon: Icon(Icons.person_rounded),
-                label: 'Profile'),
+                icon: const Icon(Icons.person_outline_rounded),
+                activeIcon: const Icon(Icons.person_rounded),
+                label: l10n.navProfile),
           ],
         ),
       ),

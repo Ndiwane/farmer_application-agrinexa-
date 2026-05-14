@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:agrinexa/l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../main.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
 import '../utils/app_router.dart';
@@ -23,7 +25,6 @@ class _LoginScreenState extends State<LoginScreen>
   bool _isLoading = false;
   bool _isGoogleLoading = false;
 
-  // Swing animation
   late AnimationController _swingController;
   late Animation<double> _swingAnim;
 
@@ -36,13 +37,10 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
-
-    // Swing left & right — continuous
     _swingController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
-
     _swingAnim = Tween<double>(begin: -0.08, end: 0.08).animate(
       CurvedAnimation(parent: _swingController, curve: Curves.easeInOut),
     );
@@ -70,35 +68,26 @@ class _LoginScreenState extends State<LoginScreen>
   void _login() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-
     try {
       final userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
       await _updateUserProfile(userCredential.user!);
-
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          AppRouter.slide( const HomeScreen()),
+          AppRouter.slide(const HomeScreen()),
         );
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Login failed. Please try again.';
-      if (e.code == 'user-not-found') {
-        message = 'No account found with this email.';
-      } else if (e.code == 'wrong-password') {
-        message = 'Incorrect password. Please try again.';
-      } else if (e.code == 'invalid-credential') {
-        message = 'Invalid email or password.';
-      } else if (e.code == 'user-disabled') {
-        message = 'This account has been disabled.';
-      } else if (e.code == 'too-many-requests') {
-        message = 'Too many attempts. Please try again later.';
-      }
+      if (e.code == 'user-not-found') message = 'No account found with this email.';
+      else if (e.code == 'wrong-password') message = 'Incorrect password.';
+      else if (e.code == 'invalid-credential') message = 'Invalid email or password.';
+      else if (e.code == 'user-disabled') message = 'This account has been disabled.';
+      else if (e.code == 'too-many-requests') message = 'Too many attempts. Try again later.';
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: AppColors.danger),
@@ -118,10 +107,8 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  void _forgotPassword() {
-    final emailController = TextEditingController(
-      text: _emailController.text.trim(),
-    );
+  void _forgotPassword(AppLocalizations l10n) {
+    final emailController = TextEditingController(text: _emailController.text.trim());
     bool isSending = false;
     bool emailSent = false;
 
@@ -134,8 +121,7 @@ class _LoginScreenState extends State<LoginScreen>
           builder: (context, setSheetState) {
             return Container(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
+                  bottom: MediaQuery.of(context).viewInsets.bottom),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -146,8 +132,7 @@ class _LoginScreenState extends State<LoginScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 40,
-                      height: 4,
+                      width: 40, height: 4,
                       decoration: BoxDecoration(
                         color: AppColors.divider,
                         borderRadius: BorderRadius.circular(2),
@@ -155,8 +140,7 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                     const SizedBox(height: 20),
                     Container(
-                      width: 60,
-                      height: 60,
+                      width: 60, height: 60,
                       decoration: BoxDecoration(
                         color: AppColors.primaryLighter,
                         shape: BoxShape.circle,
@@ -165,18 +149,14 @@ class _LoginScreenState extends State<LoginScreen>
                           color: AppColors.primary, size: 30),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Reset Password',
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDark),
-                    ),
+                    Text(l10n.resetPassword,
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark)),
                     const SizedBox(height: 8),
                     Text(
-                      emailSent
-                          ? 'A reset link has been sent to your email. Check your inbox and follow the instructions.'
-                          : 'Enter your email address and we\'ll send you a link to reset your password.',
+                      emailSent ? l10n.resetSuccess : l10n.resetSubtitle,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           fontSize: 13,
@@ -188,10 +168,10 @@ class _LoginScreenState extends State<LoginScreen>
                       TextFormField(
                         controller: emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          hintText: 'example@gmail.com',
-                          labelText: 'Email Address',
-                          prefixIcon: Icon(Icons.email_outlined,
+                        decoration: InputDecoration(
+                          hintText: l10n.emailHint,
+                          labelText: l10n.emailAddress,
+                          prefixIcon: const Icon(Icons.email_outlined,
                               color: AppColors.primary, size: 20),
                         ),
                       ),
@@ -205,22 +185,8 @@ class _LoginScreenState extends State<LoginScreen>
                                   final email = emailController.text.trim();
                                   if (email.isEmpty) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Please enter your email'),
-                                        backgroundColor: AppColors.danger,
-                                      ),
-                                    );
-                                    return;
-                                  }
-                                  final emailRegex = RegExp(
-                                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                                  if (!emailRegex.hasMatch(email)) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content:
-                                            Text('Please enter a valid email'),
-                                        backgroundColor: AppColors.danger,
-                                      ),
+                                      SnackBar(content: Text(l10n.emailRequired),
+                                          backgroundColor: AppColors.danger),
                                     );
                                     return;
                                   }
@@ -232,20 +198,12 @@ class _LoginScreenState extends State<LoginScreen>
                                       isSending = false;
                                       emailSent = true;
                                     });
-                                  } on FirebaseAuthException catch (e) {
+                                  } on FirebaseAuthException {
                                     setSheetState(() => isSending = false);
-                                    String message =
-                                        'Failed to send reset email.';
-                                    if (e.code == 'user-not-found') {
-                                      message =
-                                          'No account found with this email.';
-                                    } else if (e.code == 'invalid-email') {
-                                      message = 'Please enter a valid email.';
-                                    }
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                            content: Text(message),
+                                            content: Text(l10n.emailInvalid),
                                             backgroundColor: AppColors.danger),
                                       );
                                     }
@@ -253,11 +211,10 @@ class _LoginScreenState extends State<LoginScreen>
                                 },
                           child: isSending
                               ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
+                                  height: 22, width: 22,
                                   child: CircularProgressIndicator(
                                       color: Colors.white, strokeWidth: 2))
-                              : const Text('Send Reset Link'),
+                              : Text(l10n.sendResetLink),
                         ),
                       ),
                     ] else ...[
@@ -267,29 +224,23 @@ class _LoginScreenState extends State<LoginScreen>
                           color: AppColors.success.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.check_circle_rounded,
-                                color: AppColors.success, size: 22),
-                            const SizedBox(width: 10),
-                            const Expanded(
-                              child: Text(
-                                'Reset link sent successfully!',
-                                style: TextStyle(
-                                    color: AppColors.success,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13),
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: Row(children: [
+                          const Icon(Icons.check_circle_rounded,
+                              color: AppColors.success, size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(l10n.resetSent,
+                              style: const TextStyle(
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13))),
+                        ]),
                       ),
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Back to Login'),
+                          child: Text(l10n.backToLogin),
                         ),
                       ),
                     ],
@@ -297,7 +248,7 @@ class _LoginScreenState extends State<LoginScreen>
                     if (!emailSent)
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: Text('Cancel',
+                        child: Text(l10n.cancel,
                             style: TextStyle(color: AppColors.textLight)),
                       ),
                     const SizedBox(height: 8),
@@ -313,55 +264,21 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _signInWithGoogle() async {
     setState(() => _isGoogleLoading = true);
-
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        setState(() => _isGoogleLoading = false);
-        return;
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) { setState(() => _isGoogleLoading = false); return; }
+      final googleAuth = await googleUser.authentication;
+      if (googleAuth.accessToken == null || googleAuth.idToken == null) {
+        setState(() => _isGoogleLoading = false); return;
       }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final accessToken = googleAuth.accessToken;
-      final idToken = googleAuth.idToken;
-
-      if (accessToken == null || idToken == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Google Sign-In failed. Please try again.'),
-              backgroundColor: AppColors.danger,
-            ),
-          );
-        }
-        setState(() => _isGoogleLoading = false);
-        return;
-      }
-
       final credential = GoogleAuthProvider.credential(
-        accessToken: accessToken,
-        idToken: idToken,
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
-
-      final userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
       await _updateUserProfile(userCredential.user!);
-
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          AppRouter.slide(const HomeScreen()),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message ?? 'Google Sign-In failed.'),
-            backgroundColor: AppColors.danger,
-          ),
-        );
+        Navigator.pushReplacement(context, AppRouter.slide(const HomeScreen()));
       }
     } catch (e) {
       if (mounted) {
@@ -377,8 +294,46 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
+  /// Language selector widget — EN / FR toggle buttons
+  Widget _buildLanguageSelector() {
+    final appState = AgriNexaApp.of(context);
+    final currentLang = appState?.language ?? 'en';
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: ['en', 'fr'].map((lang) {
+        final isSelected = currentLang == lang;
+        final isFirst = lang == 'en';
+        return GestureDetector(
+          onTap: () => appState?.setLanguage(lang),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary : AppColors.primaryLighter,
+              borderRadius: BorderRadius.horizontal(
+                left: isFirst ? const Radius.circular(20) : Radius.zero,
+                right: !isFirst ? const Radius.circular(20) : Radius.zero,
+              ),
+            ),
+            child: Text(
+              lang == 'en' ? '🇬🇧 EN' : '🇫🇷 FR',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: isSelected ? Colors.white : AppColors.primary,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Get translations
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
@@ -389,161 +344,138 @@ class _LoginScreenState extends State<LoginScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 30),
+                // Language selector
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildLanguageSelector(),
+                ),
+                const SizedBox(height: 16),
 
-                // 🌿 Swinging logo
+                // Swinging logo
                 AnimatedBuilder(
                   animation: _swingAnim,
-                  builder: (context, child) {
-                    return Transform(
-                      alignment: Alignment.topCenter,
-                      transform: Matrix4.rotationZ(_swingAnim.value),
-                      child: child,
-                    );
-                  },
+                  builder: (context, child) => Transform(
+                    alignment: Alignment.topCenter,
+                    transform: Matrix4.rotationZ(_swingAnim.value),
+                    child: child,
+                  ),
                   child: Container(
-                    width: 80,
-                    height: 80,
+                    width: 80, height: 80,
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      boxShadow: [BoxShadow(
+                        color: AppColors.primary.withOpacity(0.3),
+                        blurRadius: 16, offset: const Offset(0, 6),
+                      )],
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(18),
-                      child: Image.asset(
-                        'assets/logo.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const Icon(
-                            Icons.eco_rounded,
-                            color: AppColors.white,
-                            size: 46),
-                      ),
+                      child: Image.asset('assets/logo.png', fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => const Icon(
+                              Icons.eco_rounded, color: AppColors.white, size: 46)),
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 14),
                 const Text('AgriNexa',
-                    style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
                         color: AppColors.primary)),
                 const SizedBox(height: 36),
-                const Text('Continue Your Journey',
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textDark)),
+
+                // Title and subtitle
+                Text(l10n.loginTitle,
+                    style: const TextStyle(fontSize: 20,
+                        fontWeight: FontWeight.w700, color: AppColors.textDark)),
                 const SizedBox(height: 6),
-                Text(
-                  'Buy and sell fresh farm products\nwith ease.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textMedium,
-                      height: 1.5),
-                ),
+                Text(l10n.loginSubtitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: AppColors.textMedium,
+                        height: 1.5)),
                 const SizedBox(height: 32),
-                // Email
+
+                // Email field
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    hintText: 'example@gmail.com',
-                    labelText: 'Email',
+                  decoration: InputDecoration(
+                    hintText: l10n.emailHint,
+                    labelText: l10n.email,
                   ),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Email is required';
-                    }
-                    final emailRegex =
-                        RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                    if (!emailRegex.hasMatch(value.trim())) {
-                      return 'Please enter a valid email address';
-                    }
+                    if (value == null || value.trim().isEmpty) return l10n.emailRequired;
+                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                    if (!emailRegex.hasMatch(value.trim())) return l10n.emailInvalid;
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                // Password
+
+                // Password field
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     hintText: '••••••••',
-                    labelText: 'Password',
+                    labelText: l10n.password,
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: AppColors.textLight,
-                      ),
-                      onPressed: () => setState(
-                          () => _obscurePassword = !_obscurePassword),
+                      icon: Icon(_obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                          color: AppColors.textLight),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Password is required';
-                    }
+                    if (value == null || value.isEmpty) return l10n.passwordRequired;
                     return null;
                   },
                 ),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: _forgotPassword,
-                    child: const Text('Forgot password?',
-                        style: TextStyle(
+                    onPressed: () => _forgotPassword(l10n),
+                    child: Text(l10n.forgotPassword,
+                        style: const TextStyle(
                             color: AppColors.primary, fontSize: 13)),
                   ),
                 ),
                 const SizedBox(height: 8),
+
+                // Login button
                 ElevatedButton(
                   onPressed: _isLoading ? null : _login,
                   child: _isLoading
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
+                      ? const SizedBox(height: 22, width: 22,
                           child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2),
-                        )
-                      : const Text('Login'),
+                              color: Colors.white, strokeWidth: 2))
+                      : Text(l10n.login),
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: AppColors.divider)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      child: Text('Or Continue with',
-                          style: TextStyle(
-                              color: AppColors.textLight, fontSize: 13)),
-                    ),
-                    Expanded(child: Divider(color: AppColors.divider)),
-                  ],
-                ),
+
+                // Divider
+                Row(children: [
+                  Expanded(child: Divider(color: AppColors.divider)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Text(l10n.orContinueWith,
+                        style: TextStyle(color: AppColors.textLight, fontSize: 13)),
+                  ),
+                  Expanded(child: Divider(color: AppColors.divider)),
+                ]),
                 const SizedBox(height: 20),
+
+                // Google Sign-In
                 _isGoogleLoading
-                    ? const CircularProgressIndicator(
-                        color: AppColors.primary)
+                    ? const CircularProgressIndicator(color: AppColors.primary)
                     : OutlinedButton.icon(
                         onPressed: _signInWithGoogle,
                         icon: const Icon(Icons.g_mobiledata_rounded,
                             color: Color(0xFFEA4335), size: 26),
-                        label: const Text('Continue with Google',
-                            style: TextStyle(
-                                color: AppColors.textDark,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 14)),
+                        label: Text(l10n.continueWithGoogle,
+                            style: const TextStyle(color: AppColors.textDark,
+                                fontWeight: FontWeight.w500, fontSize: 14)),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(50),
                           side: const BorderSide(color: AppColors.divider),
@@ -552,22 +484,19 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
                 const SizedBox(height: 28),
+
+                // Register link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Do not have an account? ',
-                        style: TextStyle(
-                            color: AppColors.textMedium, fontSize: 13)),
+                    Text(l10n.noAccount,
+                        style: TextStyle(color: AppColors.textMedium, fontSize: 13)),
                     GestureDetector(
                       onTap: () => Navigator.push(
-                        context,
-                        AppRouter.slide(const RegisterScreen()),
-                      ),
-                      child: const Text('Register',
-                          style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13)),
+                          context, AppRouter.slide(const RegisterScreen())),
+                      child: Text(l10n.registerLink,
+                          style: const TextStyle(color: AppColors.primary,
+                              fontWeight: FontWeight.w700, fontSize: 13)),
                     ),
                   ],
                 ),

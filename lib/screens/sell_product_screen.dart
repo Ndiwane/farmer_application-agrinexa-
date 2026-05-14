@@ -30,9 +30,27 @@ class _SellProductScreenState extends State<SellProductScreen> {
   bool _isLoading = false;
 
   // Unit options
-  final List<String> _unitOptions = ['kg', 'bucket', 'basket', 'bag', 'crate', 'Other'];
+  final List<String> _unitOptions = [
+    'kg', 'bucket', 'basket', 'bag', 'crate', 'Other'
+  ];
   String _selectedUnit = 'kg';
   bool _isCustomUnit = false;
+
+  // ── Categories ─────────────────────────────────────────────────────────
+  // Each category has a name and emoji for display
+  static const List<Map<String, String>> _categories = [
+    {'name': 'Vegetables', 'emoji': '🥬'},
+    {'name': 'Fruits',     'emoji': '🍎'},
+    {'name': 'Grains',     'emoji': '🌽'},
+    {'name': 'Legumes',    'emoji': '🫘'},
+    {'name': 'Tubers',     'emoji': '🍠'},
+    {'name': 'Nuts',       'emoji': '🌰'},
+    {'name': 'Spices',     'emoji': '🌶️'},
+    {'name': 'Other',      'emoji': '🌾'},
+  ];
+
+  // Currently selected category (required before submitting)
+  String? _selectedCategory;
 
   @override
   void dispose() {
@@ -74,7 +92,8 @@ class _SellProductScreenState extends State<SellProductScreen> {
                   color: AppColors.primaryLighter,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.camera_alt_rounded, color: AppColors.primary),
+                child: const Icon(Icons.camera_alt_rounded,
+                    color: AppColors.primary),
               ),
               title: const Text('Take Photo'),
               onTap: () {
@@ -89,7 +108,8 @@ class _SellProductScreenState extends State<SellProductScreen> {
                   color: AppColors.primaryLighter,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.photo_library_rounded, color: AppColors.primary),
+                child: const Icon(Icons.photo_library_rounded,
+                    color: AppColors.primary),
               ),
               title: const Text('Choose from Gallery'),
               onTap: () {
@@ -123,7 +143,8 @@ class _SellProductScreenState extends State<SellProductScreen> {
           'https://api.cloudinary.com/v1_1/$_cloudName/image/upload');
       final request = http.MultipartRequest('POST', url)
         ..fields['upload_preset'] = _uploadPreset
-        ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+        ..files.add(
+            await http.MultipartFile.fromPath('file', imageFile.path));
       final response = await request.send();
       final responseData = await response.stream.bytesToString();
       final jsonData = json.decode(responseData);
@@ -135,6 +156,7 @@ class _SellProductScreenState extends State<SellProductScreen> {
   }
 
   Future<void> _submitProduct() async {
+    // Validate image
     if (_selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -145,9 +167,20 @@ class _SellProductScreenState extends State<SellProductScreen> {
       return;
     }
 
+    // Validate category selection
+    if (_selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a product category'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
-    // Validate custom unit
+    // Get final unit
     final unit = _isCustomUnit
         ? _customUnitController.text.trim()
         : _selectedUnit;
@@ -173,9 +206,10 @@ class _SellProductScreenState extends State<SellProductScreen> {
       final price = _priceController.text.trim();
       final quantity = _quantityController.text.trim();
 
-      // Save product to Firestore
+      // Save product to Firestore with category
       await FirebaseFirestore.instance.collection('products').add({
         'name': _cropNameController.text.trim(),
+        'category': _selectedCategory, // ← Category saved here
         'quantity': quantity,
         'unit': unit,
         'location': _locationController.text.trim(),
@@ -218,7 +252,7 @@ class _SellProductScreenState extends State<SellProductScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: BackButton(),
+        leading: const BackButton(),
         title: const Text('Sell Product'),
       ),
       body: SingleChildScrollView(
@@ -228,7 +262,7 @@ class _SellProductScreenState extends State<SellProductScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Image picker
+              // ── Image picker ───────────────────────────────────────────
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
@@ -243,8 +277,7 @@ class _SellProductScreenState extends State<SellProductScreen> {
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(14),
                           child: Image.file(_selectedImage!,
-                              fit: BoxFit.cover,
-                              width: double.infinity),
+                              fit: BoxFit.cover, width: double.infinity),
                         )
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -254,30 +287,106 @@ class _SellProductScreenState extends State<SellProductScreen> {
                             const SizedBox(height: 8),
                             Text('Tap to add product image',
                                 style: TextStyle(
-                                    color: AppColors.textLight,
-                                    fontSize: 13)),
+                                    color: AppColors.textLight, fontSize: 13)),
                           ],
                         ),
                 ),
               ),
               const SizedBox(height: 20),
-              // Crop name
-              _FieldLabel('Crop Name'),
+
+              // ── Crop name ──────────────────────────────────────────────
+              const _FieldLabel('Crop Name'),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _cropNameController,
-                decoration: const InputDecoration(hintText: 'e.g. Tomatoes, Maize, Cassava'),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Crop name is required' : null,
+                decoration: const InputDecoration(
+                    hintText: 'e.g. Tomatoes, Maize, Cassava'),
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'Crop name is required'
+                    : null,
               ),
+              const SizedBox(height: 20),
+
+              // ── Category selector ──────────────────────────────────────
+              const _FieldLabel('Category'),
+              const SizedBox(height: 10),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4, // 4 categories per row
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 0.85,
+                ),
+                itemCount: _categories.length,
+                itemBuilder: (context, index) {
+                  final category = _categories[index];
+                  final isSelected =
+                      _selectedCategory == category['name'];
+
+                  return GestureDetector(
+                    onTap: () =>
+                        setState(() => _selectedCategory = category['name']),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.divider,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            category['emoji']!,
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            category['name']!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textDark,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              // Show error if no category selected and form submitted
+              if (_selectedCategory == null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    'Please select a category',
+                    style: TextStyle(
+                        fontSize: 12, color: AppColors.danger),
+                  ),
+                ),
               const SizedBox(height: 14),
-              // Quantity + Unit in a row
-              _FieldLabel('Available Quantity'),
+
+              // ── Quantity + Unit ────────────────────────────────────────
+              const _FieldLabel('Available Quantity'),
               const SizedBox(height: 6),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Quantity input
                   Expanded(
                     flex: 2,
                     child: TextFormField(
@@ -286,14 +395,15 @@ class _SellProductScreenState extends State<SellProductScreen> {
                       decoration: const InputDecoration(hintText: 'e.g. 10'),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Required';
-                        if (double.tryParse(v.trim()) == null) return 'Enter a valid number';
+                        if (double.tryParse(v.trim()) == null) {
+                          return 'Enter a valid number';
+                        }
                         if (double.parse(v.trim()) <= 0) return 'Must be > 0';
                         return null;
                       },
                     ),
                   ),
                   const SizedBox(width: 10),
-                  // Unit dropdown
                   Expanded(
                     flex: 2,
                     child: DropdownButtonFormField<String>(
@@ -332,7 +442,8 @@ class _SellProductScreenState extends State<SellProductScreen> {
                   ),
                 ],
               ),
-              // Custom unit input (shown only when "Other" selected)
+
+              // Custom unit input
               if (_isCustomUnit) ...[
                 const SizedBox(height: 10),
                 TextFormField(
@@ -351,34 +462,41 @@ class _SellProductScreenState extends State<SellProductScreen> {
                 ),
               ],
               const SizedBox(height: 14),
-              // Location
-              _FieldLabel('Location'),
+
+              // ── Location ───────────────────────────────────────────────
+              const _FieldLabel('Location'),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _locationController,
                 decoration: const InputDecoration(
                     hintText: 'e.g. Buea, Bamenda, Yaounde'),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Location is required' : null,
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'Location is required'
+                    : null,
               ),
               const SizedBox(height: 14),
-              // Description
-              _FieldLabel('Description'),
+
+              // ── Description ────────────────────────────────────────────
+              const _FieldLabel('Description'),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 3,
                 decoration: const InputDecoration(
-                    hintText: 'Describe your product quality, freshness, etc.'),
+                    hintText:
+                        'Describe your product quality, freshness, etc.'),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Description is required';
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Description is required';
+                  }
                   if (v.trim().length < 10) return 'Description too short';
                   return null;
                 },
               ),
               const SizedBox(height: 14),
-              // Price
-              _FieldLabel('Price per Unit'),
+
+              // ── Price ──────────────────────────────────────────────────
+              const _FieldLabel('Price per Unit'),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _priceController,
@@ -386,22 +504,28 @@ class _SellProductScreenState extends State<SellProductScreen> {
                 decoration: InputDecoration(
                   hintText: 'e.g. 500',
                   prefixText: 'FCFA  ',
-                  suffixText: '/ ${_isCustomUnit && _customUnitController.text.isNotEmpty ? _customUnitController.text.trim() : _selectedUnit == 'Other' ? 'unit' : _selectedUnit}',
+                  suffixText:
+                      '/ ${_isCustomUnit && _customUnitController.text.isNotEmpty ? _customUnitController.text.trim() : _selectedUnit == 'Other' ? 'unit' : _selectedUnit}',
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Price is required';
-                  if (double.tryParse(v.trim()) == null) return 'Enter a valid price';
-                  if (double.parse(v.trim()) <= 0) return 'Price must be greater than 0';
+                  if (double.tryParse(v.trim()) == null) {
+                    return 'Enter a valid price';
+                  }
+                  if (double.parse(v.trim()) <= 0) {
+                    return 'Price must be greater than 0';
+                  }
                   return null;
                 },
               ),
               const SizedBox(height: 30),
+
+              // ── Submit button ──────────────────────────────────────────
               ElevatedButton(
                 onPressed: _isLoading ? null : _submitProduct,
                 child: _isLoading
                     ? const SizedBox(
-                        height: 22,
-                        width: 22,
+                        height: 22, width: 22,
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2))
                     : const Text('List Product'),
