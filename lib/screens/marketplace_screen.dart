@@ -4,8 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/app_theme.dart';
 import 'product_detail_screen.dart';
 import 'chat_screen.dart';
+import 'notifications_screen.dart';  
 import '../utils/app_router.dart';
 
+/// Main marketplace screen showing all available products
+/// Users can search products, view details, and navigate to chat/notifications
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
 
@@ -14,18 +17,25 @@ class MarketplaceScreen extends StatefulWidget {
 }
 
 class _MarketplaceScreenState extends State<MarketplaceScreen> {
+  // Controller for the search text field
   final _searchController = TextEditingController();
+  
+  // Current search query entered by user
   String _searchQuery = '';
 
   @override
   void dispose() {
+    // Clean up the controller when widget is removed
     _searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get currently logged in user
     final user = FirebaseAuth.instance.currentUser;
+    
+    // Extract first name from display name for personalized greeting
     final firstName = (user?.displayName ?? 'Farmer').split(' ').first;
 
     return Scaffold(
@@ -34,12 +44,15 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // ═══════════════════════════════════════════════════════════════
+            // HEADER SECTION: Greeting + Notifications + Chat + Profile
+            // ═══════════════════════════════════════════════════════════════
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Left side: Personalized greeting
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -57,30 +70,118 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       ),
                     ],
                   ),
+                  
+                  // Right side: Notifications + Chat + Profile icons
                   Row(
                     children: [
-                      // Chat icon with unread badge
+                      // ─────────────────────────────────────────────────────
+                      // NOTIFICATIONS ICON with unread badge
+                      // ─────────────────────────────────────────────────────
                       StreamBuilder<QuerySnapshot>(
+                        // Listen for unread notifications in real-time
+                        stream: FirebaseFirestore.instance
+                            .collection('notifications')
+                            .where('toUserId', isEqualTo: user?.uid)
+                            .where('isRead', isEqualTo: false)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          // Count unread notifications
+                          final unreadCount = snapshot.hasData 
+                              ? snapshot.data!.docs.length 
+                              : 0;
+                          
+                          return GestureDetector(
+                            // Navigate to notifications screen when tapped
+                            onTap: () => Navigator.push(
+                              context,
+                              AppRouter.slide(const NotificationsScreen()),
+                            ),
+                            child: Stack(
+                              children: [
+                                // Notification bell icon
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.06),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.notifications_outlined,
+                                    color: AppColors.primary,
+                                    size: 22,
+                                  ),
+                                ),
+                                // Red badge showing unread count
+                                if (unreadCount > 0)
+                                  Positioned(
+                                    top: 0,
+                                    right: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.danger,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      constraints: const BoxConstraints(
+                                        minWidth: 18,
+                                        minHeight: 18,
+                                      ),
+                                      child: Text(
+                                        // Show "99+" if more than 99 notifications
+                                        unreadCount > 99 ? '99+' : '$unreadCount',
+                                        style: const TextStyle(
+                                            fontSize: 9,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 10),
+                      
+                      // ─────────────────────────────────────────────────────
+                      // CHAT ICON with unread messages badge
+                      // ─────────────────────────────────────────────────────
+                      StreamBuilder<QuerySnapshot>(
+                        // Listen for chats where current user is a participant
                         stream: FirebaseFirestore.instance
                             .collection('chats')
                             .where('participants', arrayContains: user?.uid)
                             .snapshots(),
                         builder: (context, snapshot) {
+                          // Calculate total unread messages across all chats
                           int totalUnread = 0;
                           if (snapshot.hasData) {
                             for (var doc in snapshot.data!.docs) {
                               final data = doc.data() as Map<String, dynamic>;
+                              // Each chat stores unread count per user
                               totalUnread +=
                                   (data['unread_${user?.uid}'] ?? 0) as int;
                             }
                           }
+                          
                           return GestureDetector(
+                            // Navigate to chat list screen
                             onTap: () => Navigator.push(
                               context,
                               AppRouter.slide(const ChatScreen()),
                             ),
                             child: Stack(
                               children: [
+                                // Chat bubble icon
                                 Container(
                                   width: 42,
                                   height: 42,
@@ -101,6 +202,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                     size: 22,
                                   ),
                                 ),
+                                // Red badge showing unread message count
                                 if (totalUnread > 0)
                                   Positioned(
                                     top: 0,
@@ -126,13 +228,18 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         },
                       ),
                       const SizedBox(width: 10),
-                      // Profile avatar
+                      
+                      // ─────────────────────────────────────────────────────
+                      // PROFILE AVATAR
+                      // ─────────────────────────────────────────────────────
                       CircleAvatar(
                         radius: 22,
                         backgroundColor: AppColors.primaryLighter,
+                        // Show user's profile photo if available
                         backgroundImage: user?.photoURL != null
                             ? NetworkImage(user!.photoURL!)
                             : null,
+                        // Show first letter of name if no photo
                         child: user?.photoURL == null
                             ? Text(
                                 firstName[0].toUpperCase(),
@@ -149,17 +256,22 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            // Search bar
+            
+            // ═══════════════════════════════════════════════════════════════
+            // SEARCH BAR: Filter products by name or location
+            // ═══════════════════════════════════════════════════════════════
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextFormField(
                 controller: _searchController,
+                // Update search query in real-time as user types
                 onChanged: (value) =>
                     setState(() => _searchQuery = value.toLowerCase()),
                 decoration: InputDecoration(
                   hintText: 'Search products...',
                   prefixIcon: const Icon(Icons.search_rounded,
                       color: AppColors.textLight),
+                  // Show clear button when user has typed something
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.close_rounded,
@@ -190,14 +302,20 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            // Products grid
+            
+            // ═══════════════════════════════════════════════════════════════
+            // PRODUCTS GRID: Display all products from Firestore
+            // ═══════════════════════════════════════════════════════════════
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
+                // Listen to products collection in real-time
+                // Ordered by newest first
                 stream: FirebaseFirestore.instance
                     .collection('products')
                     .orderBy('createdAt', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
+                  // Show loading spinner while fetching data
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(
@@ -205,6 +323,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     );
                   }
 
+                  // Show empty state if no products exist
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return Center(
                       child: Column(
@@ -228,6 +347,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     );
                   }
 
+                  // Filter products based on search query
+                  // Search matches product name or location
                   final docs = snapshot.data!.docs.where((doc) {
                     if (_searchQuery.isEmpty) return true;
                     final name = (doc['name'] as String).toLowerCase();
@@ -237,6 +358,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         location.contains(_searchQuery);
                   }).toList();
 
+                  // Show message if search returns no results
                   if (docs.isEmpty) {
                     return Center(
                       child: Text(
@@ -246,15 +368,16 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     );
                   }
 
+                  // Display products in a 2-column grid
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: GridView.builder(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
+                        crossAxisCount: 2, // Two products per row
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
-                        childAspectRatio: 0.70, // ← fixed overflow
+                        childAspectRatio: 0.70, // Card height ratio
                       ),
                       itemCount: docs.length,
                       itemBuilder: (context, index) {
@@ -277,15 +400,18 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 }
 
+/// Individual product card widget displayed in the marketplace grid
+/// Shows product image, name, location, and price
 class _ProductCard extends StatelessWidget {
-  final String productId;
-  final Map<String, dynamic> data;
+  final String productId; // Firestore document ID
+  final Map<String, dynamic> data; // Product data from Firestore
 
   const _ProductCard({required this.productId, required this.data});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      // Navigate to product detail screen when card is tapped
       onTap: () => Navigator.push(
         context,
         AppRouter.slide(ProductDetailScreen(
@@ -309,7 +435,9 @@ class _ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product image
+            // ─────────────────────────────────────────────────────────────
+            // PRODUCT IMAGE: Show product photo from Cloudinary
+            // ─────────────────────────────────────────────────────────────
             ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(14)),
@@ -318,12 +446,14 @@ class _ProductCard extends StatelessWidget {
                 height: 120,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                // Show placeholder icon if image fails to load
                 errorBuilder: (context, error, stackTrace) => Container(
                   height: 120,
                   color: AppColors.primaryLighter,
                   child: const Icon(Icons.image_outlined,
                       color: AppColors.primary, size: 40),
                 ),
+                // Show loading indicator while image loads
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
                   return Container(
@@ -337,11 +467,16 @@ class _ProductCard extends StatelessWidget {
                 },
               ),
             ),
+            
+            // ─────────────────────────────────────────────────────────────
+            // PRODUCT DETAILS: Name, Location, Price
+            // ─────────────────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Product name
                   Text(
                     data['name'] ?? '',
                     style: const TextStyle(
@@ -352,6 +487,8 @@ class _ProductCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
+                  
+                  // Location with icon
                   Row(
                     children: [
                       Icon(Icons.location_on_outlined,
@@ -369,6 +506,8 @@ class _ProductCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
+                  
+                  // Price in green (format: "500 FCFA/kg")
                   Text(
                     data['price'] ?? '',
                     style: const TextStyle(

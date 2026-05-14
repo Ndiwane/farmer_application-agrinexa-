@@ -37,11 +37,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _sellerNetwork;
   bool _sellerHasPayment = false;
 
-  // ── Keys & Server URL ──────────────────────────────────────────────────────
   final String _publicKey =
       'pk.uwjbNofcQJKSkxnGGy3U765lwyXZVv4uSMMUiZ79bcfuPxrnCn9e42dDpZSoo66Z1XMNM9nGigzVjxtt5vbo3RcGYoH7bVqgkJtjlnyHO8eGyZDI9vMqE5k9rTLL4';
-
-  // ← Your Render server handles the transfer to seller
   final String _serverUrl = 'http://13.63.87.27:3000';
 
   @override
@@ -72,10 +69,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
               _sellerPhone!.isNotEmpty;
           _isLoadingSellerInfo = false;
         });
+
+        // ── DEBUG: Print seller info ──────────────────────────────
+        debugPrint('=== SELLER INFO ===');
+        debugPrint('Seller Phone: $_sellerPhone');
+        debugPrint('Seller Network: $_sellerNetwork');
+        debugPrint('Has Payment Setup: $_sellerHasPayment');
+        debugPrint('==================');
       } else {
         setState(() => _isLoadingSellerInfo = false);
       }
     } catch (e) {
+      debugPrint('Error loading seller info: $e');
       setState(() => _isLoadingSellerInfo = false);
     }
   }
@@ -85,15 +90,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
     for (int i = 0; i < 12; i++) {
       await Future.delayed(const Duration(seconds: 5));
       try {
-        // Verify through our server
         final res = await http.get(
           Uri.parse('$_serverUrl/verify/$reference'),
         );
         final data = json.decode(res.body);
+
+        // ── DEBUG: Print poll result ──────────────────────────────
+        debugPrint('=== POLL $i ===');
+        debugPrint('Response: ${res.body}');
+        debugPrint('===============');
+
         final status = (data['data']?['transaction']?['status'] ?? '')
             .toString()
             .toLowerCase();
-        debugPrint('Poll $i: $status');
+        debugPrint('Status: $status');
 
         if (status == 'complete') return 'complete';
         if (status == 'failed') return 'failed';
@@ -107,37 +117,51 @@ class _PaymentScreenState extends State<PaymentScreen> {
           return 'insufficient_funds';
         }
       } catch (e) {
-        debugPrint('Poll error: $e');
+        debugPrint('Poll error $i: $e');
       }
     }
     return 'timeout';
   }
 
-  // Transfer to seller via EC2 (fixed IP)
+  // Transfer to seller via AWS EC2 server
   Future<bool> _transferToSeller(String sellerPhone, int amount) async {
     try {
       final phone = sellerPhone.startsWith('237')
           ? sellerPhone
           : '237$sellerPhone';
 
+      final requestBody = {
+        'amount': amount,
+        'destination': phone,
+        'channel': _sellerNetwork == 'mtn' ? 'cm.mtn' : 'cm.orange',
+        'description': 'Payment for ${widget.productName} - AgriNexa',
+        'reference': 'transfer_${DateTime.now().millisecondsSinceEpoch}',
+      };
+
+      // ── DEBUG: Print transfer request ─────────────────────────
+      debugPrint('=== TRANSFER REQUEST ===');
+      debugPrint('URL: $_serverUrl/transfer');
+      debugPrint('Body: ${json.encode(requestBody)}');
+      debugPrint('========================');
+
       final res = await http.post(
         Uri.parse('$_serverUrl/transfer'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'amount': amount,
-          'destination': phone,
-          'channel': _sellerNetwork == 'mtn' ? 'cm.mtn' : 'cm.orange',
-          'description': 'Payment for ${widget.productName} - AgriNexa',
-          'reference': 'transfer_${DateTime.now().millisecondsSinceEpoch}',
-        }),
+        body: json.encode(requestBody),
       );
 
-      final data = json.decode(res.body);
-      debugPrint('Transfer response: ${res.statusCode} - $data');
+      // ── DEBUG: Print transfer response ────────────────────────
+      debugPrint('=== TRANSFER RESPONSE ===');
+      debugPrint('Status Code: ${res.statusCode}');
+      debugPrint('Body: ${res.body}');
+      debugPrint('=========================');
 
+      final data = json.decode(res.body);
       return data['success'] == true;
     } catch (e) {
-      debugPrint('Transfer error: $e');
+      debugPrint('=== TRANSFER ERROR ===');
+      debugPrint('Error: $e');
+      debugPrint('======================');
       return false;
     }
   }
@@ -172,10 +196,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final sellerPhone = _sellerPhone!.startsWith('237')
           ? _sellerPhone!
           : '237$_sellerPhone';
-      final reference =
-          'agrinexa_${DateTime.now().millisecondsSinceEpoch}';
+      final reference = 'agrinexa_${DateTime.now().millisecondsSinceEpoch}';
 
-      // ── 1. Initialize payment ────────────────────────────────────
+      // ── DEBUG: Print payment start ────────────────────────────
+      debugPrint('=== PAYMENT START ===');
+      debugPrint('Buyer Phone: $buyerPhone');
+      debugPrint('Seller Phone: $sellerPhone');
+      debugPrint('Amount: ${widget.total.toInt()} XAF');
+      debugPrint('Reference: $reference');
+      debugPrint('=====================');
+
+      // ── 1. Initialize payment ─────────────────────────────────
       final initRes = await http.post(
         Uri.parse('https://api.notchpay.co/payments/initialize'),
         headers: {
@@ -194,12 +225,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
 
       final initData = json.decode(initRes.body);
+
+      // ── DEBUG: Print init response ────────────────────────────
+      debugPrint('=== INIT RESPONSE ===');
+      debugPrint('Status: ${initRes.statusCode}');
+      debugPrint('Body: ${initRes.body}');
+      debugPrint('=====================');
+
       if (initRes.statusCode != 200 && initRes.statusCode != 201) {
         throw Exception(initData['message'] ?? 'Failed to initialize');
       }
       final payRef = initData['transaction']['reference'] ?? reference;
 
-      // ── 2. Charge buyer's mobile money ───────────────────────────
+      // ── 2. Charge buyer ───────────────────────────────────────
       final payRes = await http.post(
         Uri.parse('https://api.notchpay.co/payments/$payRef'),
         headers: {
@@ -208,15 +246,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'Accept': 'application/json',
         },
         body: json.encode({
-          'channel':
-              _selectedNetwork == 'mtn' ? 'cm.mtn' : 'cm.orange',
+          'channel': _selectedNetwork == 'mtn' ? 'cm.mtn' : 'cm.orange',
           'data': {'phone': buyerPhone},
         }),
       );
 
       final payData = json.decode(payRes.body);
-      final payMsg =
-          (payData['message'] ?? '').toString().toLowerCase();
+      final payMsg = (payData['message'] ?? '').toString().toLowerCase();
+
+      // ── DEBUG: Print charge response ──────────────────────────
+      debugPrint('=== CHARGE RESPONSE ===');
+      debugPrint('Status: ${payRes.statusCode}');
+      debugPrint('Body: ${payRes.body}');
+      debugPrint('=======================');
 
       if (payMsg.contains('insufficient') ||
           payMsg.contains('solde') ||
@@ -231,7 +273,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         throw Exception(payData['message'] ?? 'Payment request failed');
       }
 
-      // ── 3. Wait for buyer to confirm on phone ────────────────────
+      // ── 3. Wait for buyer to confirm ──────────────────────────
       if (mounted) {
         showDialog(
           context: context,
@@ -243,8 +285,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final finalStatus = await _verifyPayment(payRef);
       if (mounted) Navigator.pop(context);
 
-      if (finalStatus == 'insufficient_funds' ||
-          finalStatus == 'failed') {
+      debugPrint('=== FINAL PAYMENT STATUS: $finalStatus ===');
+
+      if (finalStatus == 'insufficient_funds' || finalStatus == 'failed') {
         throw Exception(
             '❌ Payment failed. Check your ${_selectedNetwork.toUpperCase()} balance and try again.');
       }
@@ -252,9 +295,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
         throw Exception('Payment was cancelled. Please try again.');
       }
 
-      // ── 4. Transfer to seller via Render server ──────────────────
+      // ── 4. Transfer to seller ─────────────────────────────────
       bool transferred = false;
       if (finalStatus == 'complete') {
+        debugPrint('=== PAYMENT COMPLETE — STARTING TRANSFER ===');
         if (mounted) {
           showDialog(
             context: context,
@@ -262,12 +306,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
             builder: (_) => const _TransferringDialog(),
           );
         }
-        transferred =
-            await _transferToSeller(sellerPhone, widget.total.toInt());
+        transferred = await _transferToSeller(sellerPhone, widget.total.toInt());
         if (mounted) Navigator.pop(context);
+        debugPrint('=== TRANSFER RESULT: $transferred ===');
       }
 
-      // ── 5. Save to Firestore ─────────────────────────────────────
+      // ── 5. Save to Firestore ──────────────────────────────────
       await FirebaseFirestore.instance.collection('payments').add({
         'orderId': widget.orderId,
         'buyerId': user?.uid,
@@ -280,21 +324,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'currency': 'XAF',
         'reference': payRef,
         'paymentStatus': finalStatus,
-        'transferStatus':
-            transferred ? 'transferred' : 'pending_transfer',
+        'transferStatus': transferred ? 'transferred' : 'pending_transfer',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // ── 6. Update order ──────────────────────────────────────────
+      // ── 6. Update order ───────────────────────────────────────
       await FirebaseFirestore.instance
           .collection('orders')
           .doc(widget.orderId)
           .update({
-        'paymentStatus':
-            finalStatus == 'complete' ? 'paid' : 'pending',
+        'paymentStatus': finalStatus == 'complete' ? 'paid' : 'pending',
         'paymentReference': payRef,
-        'status':
-            finalStatus == 'complete' ? 'Confirmed' : 'Pending',
+        'status': finalStatus == 'complete' ? 'Confirmed' : 'Pending',
         'transferToSeller': transferred,
       });
 
@@ -309,8 +350,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         } else {
           _showResult(
             success: true,
-            message:
-                '⏳ Payment is being processed.\nConfirm on your phone to complete.',
+            message: '⏳ Payment is being processed.\nConfirm on your phone to complete.',
           );
         }
       }
@@ -332,8 +372,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -346,9 +385,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                success
-                    ? Icons.check_circle_rounded
-                    : Icons.error_outline_rounded,
+                success ? Icons.check_circle_rounded : Icons.error_outline_rounded,
                 color: success ? AppColors.success : AppColors.danger,
                 size: 36,
               ),
@@ -356,14 +393,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const SizedBox(height: 16),
             Text(
               success ? 'Payment Successful!' : 'Payment Failed',
-              style: const TextStyle(
-                  fontWeight: FontWeight.w700, fontSize: 16),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(message,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 13, color: AppColors.textMedium)),
+                style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
           ],
         ),
         actions: [
@@ -379,8 +414,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  success ? AppColors.success : AppColors.primary,
+              backgroundColor: success ? AppColors.success : AppColors.primary,
               minimumSize: const Size.fromHeight(44),
             ),
             child: Text(success ? 'Done' : 'Try Again'),
@@ -398,9 +432,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         title: const Text('Payment'),
       ),
       body: _isLoadingSellerInfo
-          ? const Center(
-              child: CircularProgressIndicator(
-                  color: AppColors.primary))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -410,56 +442,32 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .appBarTheme
-                          .backgroundColor,
+                      color: Theme.of(context).appBarTheme.backgroundColor,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Column(children: [
                       Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Product',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textMedium)),
-                          Text(widget.productName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13)),
+                          const Text('Product', style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
+                          Text(widget.productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Seller',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textMedium)),
-                          Text(widget.sellerName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13)),
+                          const Text('Seller', style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
+                          Text(widget.sellerName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                         ],
                       ),
                       const Divider(height: 20),
                       Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Total Amount',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15)),
-                          Text(
-                              '${widget.total.toStringAsFixed(0)} FCFA',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
-                                  color: AppColors.primary)),
+                          const Text('Total Amount', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                          Text('${widget.total.toStringAsFixed(0)} FCFA',
+                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.primary)),
                         ],
                       ),
                     ]),
@@ -470,19 +478,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: _sellerHasPayment
-                          ? AppColors.primaryLighter
-                          : AppColors.danger.withOpacity(0.08),
+                      color: _sellerHasPayment ? AppColors.primaryLighter : AppColors.danger.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(children: [
                       Icon(
-                        _sellerHasPayment
-                            ? Icons.check_circle_outline_rounded
-                            : Icons.warning_amber_rounded,
-                        color: _sellerHasPayment
-                            ? AppColors.primary
-                            : AppColors.danger,
+                        _sellerHasPayment ? Icons.check_circle_outline_rounded : Icons.warning_amber_rounded,
+                        color: _sellerHasPayment ? AppColors.primary : AppColors.danger,
                         size: 20,
                       ),
                       const SizedBox(width: 10),
@@ -493,9 +495,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               : '⚠️ Seller has not set up payment yet.',
                           style: TextStyle(
                               fontSize: 13,
-                              color: _sellerHasPayment
-                                  ? AppColors.primary
-                                  : AppColors.danger,
+                              color: _sellerHasPayment ? AppColors.primary : AppColors.danger,
                               fontWeight: FontWeight.w500),
                         ),
                       ),
@@ -504,54 +504,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(height: 20),
 
                   // Network selector
-                  const Text('Your Payment Network',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 15)),
+                  const Text('Your Payment Network', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   const SizedBox(height: 12),
                   Row(children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () =>
-                            setState(() => _selectedNetwork = 'mtn'),
+                        onTap: () => setState(() => _selectedNetwork = 'mtn'),
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: _selectedNetwork == 'mtn'
-                                ? const Color(0xFFFFF9C4)
-                                : Theme.of(context)
-                                    .appBarTheme
-                                    .backgroundColor,
+                            color: _selectedNetwork == 'mtn' ? const Color(0xFFFFF9C4) : Theme.of(context).appBarTheme.backgroundColor,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _selectedNetwork == 'mtn'
-                                  ? const Color(0xFFFFCC00)
-                                  : AppColors.divider,
-                              width:
-                                  _selectedNetwork == 'mtn' ? 2 : 1,
+                              color: _selectedNetwork == 'mtn' ? const Color(0xFFFFCC00) : AppColors.divider,
+                              width: _selectedNetwork == 'mtn' ? 2 : 1,
                             ),
                           ),
                           child: Column(children: [
                             Container(
                               width: 48, height: 48,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFCC00),
-                                borderRadius:
-                                    BorderRadius.circular(10),
-                              ),
-                              child: const Center(
-                                child: Text('MTN',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 12,
-                                        color: Colors.black)),
-                              ),
+                              decoration: BoxDecoration(color: const Color(0xFFFFCC00), borderRadius: BorderRadius.circular(10)),
+                              child: const Center(child: Text('MTN', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.black))),
                             ),
                             const SizedBox(height: 8),
-                            const Text('MTN Mobile\nMoney',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12)),
+                            const Text('MTN Mobile\nMoney', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
                           ]),
                         ),
                       ),
@@ -559,48 +535,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => setState(
-                            () => _selectedNetwork = 'orange'),
+                        onTap: () => setState(() => _selectedNetwork = 'orange'),
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: _selectedNetwork == 'orange'
-                                ? const Color(0xFFFFECE0)
-                                : Theme.of(context)
-                                    .appBarTheme
-                                    .backgroundColor,
+                            color: _selectedNetwork == 'orange' ? const Color(0xFFFFECE0) : Theme.of(context).appBarTheme.backgroundColor,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _selectedNetwork == 'orange'
-                                  ? const Color(0xFFFF6600)
-                                  : AppColors.divider,
-                              width: _selectedNetwork == 'orange'
-                                  ? 2
-                                  : 1,
+                              color: _selectedNetwork == 'orange' ? const Color(0xFFFF6600) : AppColors.divider,
+                              width: _selectedNetwork == 'orange' ? 2 : 1,
                             ),
                           ),
                           child: Column(children: [
                             Container(
                               width: 48, height: 48,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFF6600),
-                                borderRadius:
-                                    BorderRadius.circular(10),
-                              ),
-                              child: const Center(
-                                child: Text('OM',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 14,
-                                        color: Colors.white)),
-                              ),
+                              decoration: BoxDecoration(color: const Color(0xFFFF6600), borderRadius: BorderRadius.circular(10)),
+                              child: const Center(child: Text('OM', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.white))),
                             ),
                             const SizedBox(height: 8),
-                            const Text('Orange\nMoney',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12)),
+                            const Text('Orange\nMoney', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
                           ]),
                         ),
                       ),
@@ -609,9 +562,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(height: 20),
 
                   // Phone input
-                  const Text('Your Mobile Money Number',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 15)),
+                  const Text('Your Mobile Money Number', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _phoneController,
@@ -619,13 +570,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     decoration: InputDecoration(
                       hintText: 'e.g. 677000000',
                       prefixIcon: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 14),
-                        child: const Text('+237',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: AppColors.primary)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        child: const Text('+237', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.primary)),
                       ),
                     ),
                   ),
@@ -637,18 +583,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     decoration: BoxDecoration(
                       color: Colors.orange.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: Colors.orange.withOpacity(0.3)),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
                     ),
                     child: Row(children: [
-                      const Icon(Icons.info_outline_rounded,
-                          color: Colors.orange, size: 18),
+                      const Icon(Icons.info_outline_rounded, color: Colors.orange, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Ensure your ${_selectedNetwork.toUpperCase()} Mobile Money has sufficient balance.',
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.orange),
+                          style: const TextStyle(fontSize: 12, color: Colors.orange),
                         ),
                       ),
                     ]),
@@ -656,27 +599,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(height: 28),
 
                   ElevatedButton(
-                    onPressed:
-                        _isProcessing ? null : _initiatePayment,
+                    onPressed: _isProcessing ? null : _initiatePayment,
                     child: _isProcessing
-                        ? const SizedBox(
-                            height: 22, width: 22,
-                            child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2))
-                        : Text(
-                            'Pay ${widget.total.toStringAsFixed(0)} FCFA'),
+                        ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text('Pay ${widget.total.toStringAsFixed(0)} FCFA'),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.lock_outline_rounded,
-                          size: 14, color: AppColors.textLight),
+                      const Icon(Icons.lock_outline_rounded, size: 14, color: AppColors.textLight),
                       const SizedBox(width: 4),
-                      Text('Secured by Notchpay',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textLight)),
+                      Text('Secured by Notchpay', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -700,32 +634,24 @@ class _WaitingDialogState extends State<_WaitingDialog> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1),
-        (_) { if (mounted) setState(() => _seconds++); });
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) { if (mounted) setState(() => _seconds++); });
   }
   @override
   void dispose() { _timer.cancel(); super.dispose(); }
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         const CircularProgressIndicator(color: AppColors.primary),
         const SizedBox(height: 20),
-        const Text('Waiting for Confirmation',
-            style:
-                TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+        const Text('Waiting for Confirmation', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
         const SizedBox(height: 8),
-        const Text(
-            'Check your phone and enter\nyour PIN to confirm payment.',
+        const Text('Check your phone and enter\nyour PIN to confirm payment.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 13, color: AppColors.textMedium)),
+            style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
         const SizedBox(height: 12),
-        Text('${_seconds}s',
-            style: const TextStyle(
-                fontSize: 12, color: AppColors.textLight)),
+        Text('${_seconds}s', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
       ]),
     );
   }
@@ -737,19 +663,15 @@ class _TransferringDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       content: const Column(mainAxisSize: MainAxisSize.min, children: [
         CircularProgressIndicator(color: AppColors.primary),
         SizedBox(height: 20),
-        Text('Sending to Seller...',
-            style:
-                TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+        Text('Sending to Seller...', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
         SizedBox(height: 8),
         Text('Transferring payment to\nthe seller\'s mobile money.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 13, color: AppColors.textMedium)),
+            style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
       ]),
     );
   }
