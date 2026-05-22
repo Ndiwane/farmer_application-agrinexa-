@@ -22,7 +22,6 @@ class _ChatScreenState extends State<ChatScreen> {
     return ids.join('_');
   }
 
-  // Show options: text status or image status
   void _showAddStatusOptions() {
     showModalBottomSheet(
       context: context,
@@ -59,11 +58,9 @@ class _ChatScreenState extends State<ChatScreen> {
               subtitle: const Text('Share a photo from your gallery'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  AppRouter.slideUp(const StatusComposerScreen(
-                      type: StatusComposerType.image)),
-                );
+                Navigator.push(context,
+                    AppRouter.slideUp(const StatusComposerScreen(
+                        type: StatusComposerType.image)));
               },
             ),
             ListTile(
@@ -79,11 +76,9 @@ class _ChatScreenState extends State<ChatScreen> {
               subtitle: const Text('Share a text with colored background'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  AppRouter.slideUp(const StatusComposerScreen(
-                      type: StatusComposerType.text)),
-                );
+                Navigator.push(context,
+                    AppRouter.slideUp(const StatusComposerScreen(
+                        type: StatusComposerType.text)));
               },
             ),
             const SizedBox(height: 8),
@@ -93,7 +88,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // View my own statuses
   void _viewMyStatus() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('statuses')
@@ -115,7 +109,8 @@ class _ChatScreenState extends State<ChatScreen> {
       final userData = userDoc.data() ?? {};
       final userName =
           userData['name'] ?? currentUser!.displayName ?? 'Me';
-      final userPhoto = userData['photoUrl'] ?? currentUser!.photoURL ?? '';
+      final userPhoto =
+          userData['photoUrl'] ?? currentUser!.photoURL ?? '';
 
       if (!mounted) return;
       Navigator.push(
@@ -145,7 +140,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // ── Status bar ─────────────────────────────────────────────
+          // Status bar
           Container(
             color: AppColors.white,
             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -172,31 +167,25 @@ class _ChatScreenState extends State<ChatScreen> {
                         padding:
                             const EdgeInsets.symmetric(horizontal: 16),
                         children: [
-                          // My status
                           _MyStatusBubble(
                             userId: currentUser!.uid,
                             onAdd: _showAddStatusOptions,
                             onView: _viewMyStatus,
                           ),
                           const SizedBox(width: 12),
-                          // Others' statuses — only show users in my chat list
                           if (snapshot.hasData)
                             ...snapshot.data!.docs
-                                .where((doc) =>
-                                    doc.id != currentUser!.uid)
+                                .where((doc) => doc.id != currentUser!.uid)
                                 .map((doc) => _OtherStatusBubble(
                                       userId: doc.id,
-                                      onView: (userId, userName,
-                                          userPhoto) {
+                                      onView: (userId, userName, userPhoto) {
                                         Navigator.push(
                                           context,
-                                          AppRouter.slideUp(
-                                            StatusViewerScreen(
-                                              userId: userId,
-                                              userName: userName,
-                                              userPhoto: userPhoto,
-                                            ),
-                                          ),
+                                          AppRouter.slideUp(StatusViewerScreen(
+                                            userId: userId,
+                                            userName: userName,
+                                            userPhoto: userPhoto,
+                                          )),
                                         );
                                       },
                                     )),
@@ -210,25 +199,22 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           const SizedBox(height: 8),
 
-          // ── Chat list ──────────────────────────────────────────────
+          // Chat list
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('chats')
-                  .where('participants',
-                      arrayContains: currentUser!.uid)
+                  .where('participants', arrayContains: currentUser!.uid)
                   .orderBy('lastMessageTime', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                       child: CircularProgressIndicator(
                           color: AppColors.primary));
                 }
 
-                if (!snapshot.hasData ||
-                    snapshot.data!.docs.isEmpty) {
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -246,8 +232,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           'Contact a seller from the marketplace\nto start chatting!',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              color: AppColors.textMedium,
-                              fontSize: 13),
+                              color: AppColors.textMedium, fontSize: 13),
                         ),
                       ],
                     ),
@@ -258,8 +243,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     final doc = snapshot.data!.docs[index];
-                    final data =
-                        doc.data() as Map<String, dynamic>;
+                    final data = doc.data() as Map<String, dynamic>;
                     final participants =
                         List<String>.from(data['participants']);
                     final otherUserId = participants
@@ -271,19 +255,13 @@ class _ChatScreenState extends State<ChatScreen> {
                           .doc(otherUserId)
                           .get(),
                       builder: (context, userSnapshot) {
-                        if (!userSnapshot.hasData) {
-                          return const SizedBox.shrink();
-                        }
-                        final userData =
-                            userSnapshot.data!.data()
-                                    as Map<String, dynamic>? ??
-                                {};
+                        if (!userSnapshot.hasData) return const SizedBox.shrink();
+                        final userData = userSnapshot.data!.data()
+                                as Map<String, dynamic>? ?? {};
                         final userName = userData['name'] ?? 'User';
                         final userPhoto = userData['photoUrl'] ?? '';
-                        final lastMessage =
-                            data['lastMessage'] ?? 'Say hello!';
-                        final lastTime =
-                            data['lastMessageTime'] as Timestamp?;
+                        final lastMessage = data['lastMessage'] ?? 'Say hello!';
+                        final lastTime = data['lastMessageTime'] as Timestamp?;
                         final unreadCount =
                             data['unread_${currentUser!.uid}'] ?? 0;
 
@@ -316,7 +294,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-// ── My Status Bubble ──────────────────────────────────────────────────────────
 class _MyStatusBubble extends StatelessWidget {
   final String userId;
   final VoidCallback onAdd;
@@ -339,8 +316,7 @@ class _MyStatusBubble extends StatelessWidget {
           .limit(1)
           .snapshots(),
       builder: (context, snapshot) {
-        final hasStatus =
-            snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+        final hasStatus = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
         return GestureDetector(
           onTap: hasStatus ? onView : onAdd,
           child: Column(
@@ -352,14 +328,13 @@ class _MyStatusBubble extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: hasStatus
-                          ? Border.all(
-                              color: AppColors.primary, width: 2.5)
+                          ? Border.all(color: AppColors.primary, width: 2.5)
                           : null,
                     ),
-                    child: CircleAvatar(
+                    child: const CircleAvatar(
                       radius: 26,
                       backgroundColor: AppColors.primaryLighter,
-                      child: const Icon(Icons.person,
+                      child: Icon(Icons.person,
                           color: AppColors.primary, size: 28),
                     ),
                   ),
@@ -370,8 +345,7 @@ class _MyStatusBubble extends StatelessWidget {
                       child: Container(
                         width: 20, height: 20,
                         decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle),
+                            color: AppColors.primary, shape: BoxShape.circle),
                         child: const Icon(Icons.add,
                             size: 14, color: Colors.white),
                       ),
@@ -397,14 +371,11 @@ class _MyStatusBubble extends StatelessWidget {
   }
 }
 
-// ── Other User Status Bubble ──────────────────────────────────────────────────
 class _OtherStatusBubble extends StatelessWidget {
   final String userId;
-  final Function(String userId, String userName, String userPhoto)
-      onView;
+  final Function(String, String, String) onView;
 
-  const _OtherStatusBubble(
-      {required this.userId, required this.onView});
+  const _OtherStatusBubble({required this.userId, required this.onView});
 
   @override
   Widget build(BuildContext context) {
@@ -421,8 +392,7 @@ class _OtherStatusBubble extends StatelessWidget {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const SizedBox.shrink();
         }
-        final data =
-            snapshot.data!.docs.first.data() as Map<String, dynamic>;
+        final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
         final userName = data['userName'] ?? 'User';
         final userPhoto = data['userPhoto'] ?? '';
 
@@ -436,20 +406,16 @@ class _OtherStatusBubble extends StatelessWidget {
                   width: 56, height: 56,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                        color: AppColors.primary, width: 2.5),
+                    border: Border.all(color: AppColors.primary, width: 2.5),
                   ),
                   child: CircleAvatar(
                     radius: 26,
                     backgroundColor: AppColors.primaryLighter,
                     backgroundImage: userPhoto.isNotEmpty
-                        ? NetworkImage(userPhoto)
-                        : null,
+                        ? NetworkImage(userPhoto) : null,
                     child: userPhoto.isEmpty
                         ? Text(
-                            userName.isNotEmpty
-                                ? userName[0].toUpperCase()
-                                : 'U',
+                            userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
                             style: const TextStyle(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w700))
@@ -464,8 +430,7 @@ class _OtherStatusBubble extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textMedium)),
+                          fontSize: 11, color: AppColors.textMedium)),
                 ),
               ],
             ),
@@ -476,7 +441,6 @@ class _OtherStatusBubble extends StatelessWidget {
   }
 }
 
-// ── Chat Tile ─────────────────────────────────────────────────────────────────
 class _ChatTile extends StatelessWidget {
   final String name;
   final String photoUrl;

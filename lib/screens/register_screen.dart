@@ -81,23 +81,29 @@ class _RegisterScreenState extends State<RegisterScreen>
     try {
       final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
       final displayName =
           '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}';
       await userCredential.user?.updateDisplayName(displayName);
       await userCredential.user?.reload();
       final updatedUser = FirebaseAuth.instance.currentUser!;
-      await _createUserProfile(updatedUser, phone: _phoneController.text.trim());
+      await _createUserProfile(
+        updatedUser,
+        phone: _phoneController.text.trim(),
+      );
       if (mounted) {
         Navigator.pushReplacement(context, AppRouter.slide(const HomeScreen()));
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Registration failed. Please try again.';
-      if (e.code == 'email-already-in-use') message = 'This email is already registered.';
-      else if (e.code == 'weak-password') message = 'Password is too weak.';
-      else if (e.code == 'invalid-email') message = 'The email address is not valid.';
+      if (e.code == 'email-already-in-use') {
+        message = 'This email is already registered.';
+      } else if (e.code == 'weak-password')
+        message = 'Password is too weak.';
+      else if (e.code == 'invalid-email')
+        message = 'The email address is not valid.';
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: AppColors.danger),
@@ -112,13 +118,18 @@ class _RegisterScreenState extends State<RegisterScreen>
     setState(() => _isGoogleLoading = true);
     try {
       final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) { setState(() => _isGoogleLoading = false); return; }
+      if (googleUser == null) {
+        setState(() => _isGoogleLoading = false);
+        return;
+      }
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
       await _createUserProfile(userCredential.user!);
       if (mounted) {
         Navigator.pushReplacement(context, AppRouter.slide(const HomeScreen()));
@@ -204,80 +215,121 @@ class _RegisterScreenState extends State<RegisterScreen>
                     child: child,
                   ),
                   child: Container(
-                    width: 72, height: 72,
+                    width: 72,
+                    height: 72,
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: [BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
-                        blurRadius: 14, offset: const Offset(0, 5),
-                      )],
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.3),
+                          blurRadius: 14,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child: Image.asset('assets/logo.png', fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const Icon(
-                              Icons.eco_rounded, color: AppColors.white, size: 42)),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const Icon(
+                          Icons.eco_rounded,
+                          color: AppColors.white,
+                          size: 42,
+                        ),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text('AgriNexa',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800,
-                        color: AppColors.primary)),
+                const Text(
+                  'AgriNexa',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
                 const SizedBox(height: 28),
 
                 // Title and subtitle
-                Text(l10n.createAccount,
-                    style: const TextStyle(fontSize: 20,
-                        fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                Text(
+                  l10n.createAccount,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textDark,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text(l10n.registerSubtitle,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13,
-                        color: AppColors.textMedium, height: 1.5)),
+                Text(
+                  l10n.registerSubtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textMedium,
+                    height: 1.5,
+                  ),
+                ),
                 const SizedBox(height: 28),
 
                 // First name & Last name
-                Row(children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(l10n.firstName,
-                            style: const TextStyle(fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textDark)),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _firstNameController,
-                          decoration: const InputDecoration(hintText: 'Ndiwane'),
-                          validator: (v) =>
-                              (v == null || v.trim().isEmpty) ? l10n.required : null,
-                        ),
-                      ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.firstName,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextFormField(
+                            controller: _firstNameController,
+                            decoration: const InputDecoration(
+                              hintText: 'Ndiwane',
+                            ),
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? l10n.required
+                                : null,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(l10n.lastName,
-                            style: const TextStyle(fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textDark)),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _lastNameController,
-                          decoration: const InputDecoration(hintText: 'Timothy'),
-                          validator: (v) =>
-                              (v == null || v.trim().isEmpty) ? l10n.required : null,
-                        ),
-                      ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.lastName,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textDark,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextFormField(
+                            controller: _lastNameController,
+                            decoration: const InputDecoration(
+                              hintText: 'Timothy',
+                            ),
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? l10n.required
+                                : null,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ]),
+                  ],
+                ),
                 const SizedBox(height: 16),
 
                 // Phone number
@@ -305,9 +357,15 @@ class _RegisterScreenState extends State<RegisterScreen>
                     labelText: l10n.email,
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return l10n.emailRequired;
-                    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                    if (!emailRegex.hasMatch(v.trim())) return l10n.emailInvalid;
+                    if (v == null || v.trim().isEmpty) {
+                      return l10n.emailRequired;
+                    }
+                    final emailRegex = RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    );
+                    if (!emailRegex.hasMatch(v.trim())) {
+                      return l10n.emailInvalid;
+                    }
                     return null;
                   },
                 ),
@@ -321,10 +379,12 @@ class _RegisterScreenState extends State<RegisterScreen>
                     hintText: '••••••••',
                     labelText: l10n.password,
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                          color: AppColors.textLight),
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: AppColors.textLight,
+                      ),
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
                     ),
@@ -345,17 +405,25 @@ class _RegisterScreenState extends State<RegisterScreen>
                     hintText: '••••••••',
                     labelText: l10n.confirmPassword,
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureConfirmPassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                          color: AppColors.textLight),
-                      onPressed: () => setState(() =>
-                          _obscureConfirmPassword = !_obscureConfirmPassword),
+                      icon: Icon(
+                        _obscureConfirmPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: AppColors.textLight,
+                      ),
+                      onPressed: () => setState(
+                        () =>
+                            _obscureConfirmPassword = !_obscureConfirmPassword,
+                      ),
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return l10n.passwordConfirmRequired;
-                    if (v != _passwordController.text) return l10n.passwordNoMatch;
+                    if (v == null || v.isEmpty) {
+                      return l10n.passwordConfirmRequired;
+                    }
+                    if (v != _passwordController.text) {
+                      return l10n.passwordNoMatch;
+                    }
                     return null;
                   },
                 ),
@@ -365,40 +433,67 @@ class _RegisterScreenState extends State<RegisterScreen>
                 ElevatedButton(
                   onPressed: _isLoading ? null : () => _register(l10n),
                   child: _isLoading
-                      ? const SizedBox(height: 22, width: 22,
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
                           child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2))
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                       : Text(l10n.register),
                 ),
                 const SizedBox(height: 20),
 
                 // Divider
-                Row(children: [
-                  Expanded(child: Divider(color: AppColors.divider)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Text(l10n.orContinueWith,
-                        style: TextStyle(color: AppColors.textLight, fontSize: 13)),
-                  ),
-                  Expanded(child: Divider(color: AppColors.divider)),
-                ]),
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: AppColors.divider)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: Text(
+                        l10n.orContinueWith,
+                        style: TextStyle(
+                          color: AppColors.textLight,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: AppColors.divider)),
+                  ],
+                ),
                 const SizedBox(height: 20),
 
                 // Google Sign-In
                 _isGoogleLoading
                     ? const CircularProgressIndicator(color: AppColors.primary)
-                    : OutlinedButton.icon(
+                    : OutlinedButton(
                         onPressed: _signInWithGoogle,
-                        icon: const Icon(Icons.g_mobiledata_rounded,
-                            color: Color(0xFFEA4335), size: 26),
-                        label: Text(l10n.continueWithGoogle,
-                            style: const TextStyle(color: AppColors.textDark,
-                                fontWeight: FontWeight.w500, fontSize: 14)),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(50),
                           side: const BorderSide(color: AppColors.divider),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              'assets/images/google.png',
+                              height: 24,
+                              width: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Continue with Google',
+                              style: TextStyle(
+                                color: AppColors.textDark,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                 const SizedBox(height: 24),
@@ -407,13 +502,23 @@ class _RegisterScreenState extends State<RegisterScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(l10n.alreadyAccount,
-                        style: TextStyle(color: AppColors.textMedium, fontSize: 13)),
+                    Text(
+                      l10n.alreadyAccount,
+                      style: TextStyle(
+                        color: AppColors.textMedium,
+                        fontSize: 13,
+                      ),
+                    ),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: Text(l10n.loginLink,
-                          style: const TextStyle(color: AppColors.primary,
-                              fontWeight: FontWeight.w700, fontSize: 13)),
+                      child: Text(
+                        l10n.loginLink,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
                   ],
                 ),

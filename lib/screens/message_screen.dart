@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:agrinexa/l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../services/notification_service.dart';
 
@@ -13,14 +14,14 @@ class MessageScreen extends StatefulWidget {
   final String chatId;
   final String otherUserId;
   final String otherUserName;
-  final String otherUserPhoto;
+  final String? otherUserPhoto;
 
   const MessageScreen({
     super.key,
     required this.chatId,
     required this.otherUserId,
     required this.otherUserName,
-    required this.otherUserPhoto,
+    this.otherUserPhoto,
   });
 
   @override
@@ -49,7 +50,6 @@ class _MessageScreenState extends State<MessageScreen> {
     super.dispose();
   }
 
-  // Mark messages as read
   Future<void> _markMessagesAsRead() async {
     await FirebaseFirestore.instance
         .collection('chats')
@@ -57,7 +57,6 @@ class _MessageScreenState extends State<MessageScreen> {
         .update({'unread_${currentUser?.uid}': 0});
   }
 
-  // Scroll to bottom
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -68,15 +67,14 @@ class _MessageScreenState extends State<MessageScreen> {
     }
   }
 
-  // Upload image to Cloudinary
   Future<String?> _uploadImage(File imageFile) async {
     try {
       final url = Uri.parse(
           'https://api.cloudinary.com/v1_1/$_cloudName/image/upload');
       final request = http.MultipartRequest('POST', url)
         ..fields['upload_preset'] = _uploadPreset
-        ..files
-            .add(await http.MultipartFile.fromPath('file', imageFile.path));
+        ..files.add(
+            await http.MultipartFile.fromPath('file', imageFile.path));
       final response = await request.send();
       final responseData = await response.stream.bytesToString();
       final jsonData = json.decode(responseData);
@@ -87,8 +85,7 @@ class _MessageScreenState extends State<MessageScreen> {
     }
   }
 
-  // Pick image
-  void _showImageSourceDialog() {
+  void _showImageSourceDialog(AppLocalizations l10n) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -100,8 +97,7 @@ class _MessageScreenState extends State<MessageScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40,
-              height: 4,
+              width: 40, height: 4,
               decoration: BoxDecoration(
                 color: AppColors.divider,
                 borderRadius: BorderRadius.circular(2),
@@ -111,7 +107,7 @@ class _MessageScreenState extends State<MessageScreen> {
             ListTile(
               leading: const Icon(Icons.camera_alt_rounded,
                   color: AppColors.primary),
-              title: const Text('Camera'),
+              title: Text(l10n.camera),
               onTap: () {
                 Navigator.pop(context);
                 _pickAndSendImage(ImageSource.camera);
@@ -120,7 +116,7 @@ class _MessageScreenState extends State<MessageScreen> {
             ListTile(
               leading: const Icon(Icons.photo_library_rounded,
                   color: AppColors.primary),
-              title: const Text('Gallery'),
+              title: Text(l10n.gallery),
               onTap: () {
                 Navigator.pop(context);
                 _pickAndSendImage(ImageSource.gallery);
@@ -132,7 +128,6 @@ class _MessageScreenState extends State<MessageScreen> {
     );
   }
 
-  // Pick and send image
   Future<void> _pickAndSendImage(ImageSource source) async {
     final picker = ImagePicker();
     final pickedFile =
@@ -147,7 +142,6 @@ class _MessageScreenState extends State<MessageScreen> {
     setState(() => _isSending = false);
   }
 
-  // Send message
   Future<void> _sendMessage({String? imageUrl}) async {
     final text = _messageController.text.trim();
     if (text.isEmpty && imageUrl == null) return;
@@ -163,16 +157,15 @@ class _MessageScreenState extends State<MessageScreen> {
         'imageUrl': imageUrl ?? '',
         'isImage': imageUrl != null,
         'timestamp': FieldValue.serverTimestamp(),
+        'deleted': false, // ← Track if message is deleted
       };
 
-      // Add message to subcollection
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
           .collection('messages')
           .add(messageData);
 
-      // Update chat document
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(widget.chatId)
@@ -185,7 +178,6 @@ class _MessageScreenState extends State<MessageScreen> {
         'unread_${currentUser?.uid}': 0,
       }, SetOptions(merge: true));
 
-      // Send notification to recipient
       await NotificationService.sendNotificationToUser(
         userId: widget.otherUserId,
         title: currentUser?.displayName ?? 'Someone',
@@ -197,14 +189,14 @@ class _MessageScreenState extends State<MessageScreen> {
         },
       );
 
-      // Scroll to bottom
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _scrollToBottom());
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to send message'),
+          SnackBar(
+            content: Text(l10n.failedToSend),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -214,21 +206,76 @@ class _MessageScreenState extends State<MessageScreen> {
     }
   }
 
+  /// Delete a message — only sender can delete their own messages
+  Future<void> _deleteMessage(
+      String messageId, AppLocalizations l10n) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        title: Text(l10n.deleteMessage,
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        content: Text(l10n.deleteMessageConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel,
+                style: TextStyle(color: AppColors.textLight)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Mark message as deleted (soft delete — keeps timestamp intact)
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(widget.chatId)
+        .collection('messages')
+        .doc(messageId)
+        .update({
+      'deleted': true,
+      'text': '',
+      'imageUrl': '',
+      'isImage': false,
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.messageDeleted),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(),
+        leading: const BackButton(),
         titleSpacing: 0,
         title: Row(
           children: [
             CircleAvatar(
               radius: 18,
               backgroundColor: AppColors.primaryLighter,
-              backgroundImage: widget.otherUserPhoto.isNotEmpty
-                  ? NetworkImage(widget.otherUserPhoto)
-                  : null,
-              child: widget.otherUserPhoto.isEmpty
+              backgroundImage:
+                  (widget.otherUserPhoto?.isNotEmpty ?? false)
+                      ? NetworkImage(widget.otherUserPhoto!)
+                      : null,
+              child: (widget.otherUserPhoto?.isEmpty ?? true)
                   ? Text(
                       widget.otherUserName.isNotEmpty
                           ? widget.otherUserName[0].toUpperCase()
@@ -246,7 +293,6 @@ class _MessageScreenState extends State<MessageScreen> {
                   Text(widget.otherUserName,
                       style: const TextStyle(
                           fontSize: 15, fontWeight: FontWeight.w700)),
-                  // Online status
                   StreamBuilder<DocumentSnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('users')
@@ -260,7 +306,7 @@ class _MessageScreenState extends State<MessageScreen> {
                         isOnline = data['isOnline'] ?? false;
                       }
                       return Text(
-                        isOnline ? 'Online' : 'Offline',
+                        isOnline ? l10n.online : l10n.offline,
                         style: TextStyle(
                           fontSize: 11,
                           color: isOnline
@@ -288,14 +334,16 @@ class _MessageScreenState extends State<MessageScreen> {
                   .orderBy('timestamp', descending: false)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(
                         color: AppColors.primary),
                   );
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                if (!snapshot.hasData ||
+                    snapshot.data!.docs.isEmpty) {
                   return Center(
                     child: Text(
                       'Say hello to ${widget.otherUserName}! 👋',
@@ -316,12 +364,25 @@ class _MessageScreenState extends State<MessageScreen> {
                     final data = doc.data() as Map<String, dynamic>;
                     final isMe =
                         data['senderId'] == currentUser?.uid;
-                    return _MessageBubble(data: data, isMe: isMe);
+                    final isDeleted = data['deleted'] == true;
+
+                    return GestureDetector(
+                      // Long press to delete (only sender can delete)
+                      onLongPress: isMe && !isDeleted
+                          ? () => _deleteMessage(doc.id, l10n)
+                          : null,
+                      child: _MessageBubble(
+                        data: data,
+                        isMe: isMe,
+                        isDeleted: isDeleted,
+                      ),
+                    );
                   },
                 );
               },
             ),
           ),
+
           // Input bar
           Container(
             padding: const EdgeInsets.symmetric(
@@ -340,7 +401,7 @@ class _MessageScreenState extends State<MessageScreen> {
               children: [
                 // Image button
                 IconButton(
-                  onPressed: _showImageSourceDialog,
+                  onPressed: () => _showImageSourceDialog(l10n),
                   icon: const Icon(Icons.image_outlined,
                       color: AppColors.primary),
                 ),
@@ -349,7 +410,7 @@ class _MessageScreenState extends State<MessageScreen> {
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: 'Type a message...',
+                      hintText: l10n.typeMessage,
                       filled: true,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 10),
@@ -376,8 +437,7 @@ class _MessageScreenState extends State<MessageScreen> {
                 GestureDetector(
                   onTap: _isSending ? null : () => _sendMessage(),
                   child: Container(
-                    width: 42,
-                    height: 42,
+                    width: 42, height: 42,
                     decoration: const BoxDecoration(
                       color: AppColors.primary,
                       shape: BoxShape.circle,
@@ -404,8 +464,13 @@ class _MessageScreenState extends State<MessageScreen> {
 class _MessageBubble extends StatelessWidget {
   final Map<String, dynamic> data;
   final bool isMe;
+  final bool isDeleted;
 
-  const _MessageBubble({required this.data, required this.isMe});
+  const _MessageBubble({
+    required this.data,
+    required this.isMe,
+    required this.isDeleted,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -421,7 +486,12 @@ class _MessageBubble extends StatelessWidget {
         constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.72),
         decoration: BoxDecoration(
-          color: isMe ? AppColors.primary : AppColors.primaryLighter,
+          // Deleted messages have a muted style
+          color: isDeleted
+              ? AppColors.divider
+              : isMe
+                  ? AppColors.primary
+                  : AppColors.primaryLighter,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -429,45 +499,68 @@ class _MessageBubble extends StatelessWidget {
             bottomRight: Radius.circular(isMe ? 4 : 16),
           ),
         ),
-        child: data['isImage'] == true
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Image.network(
-                  data['imageUrl'],
-                  width: 200,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Icon(Icons.broken_image_outlined),
-                  ),
-                ),
-              )
-            : Padding(
+        child: isDeleted
+            // Show "This message was deleted" for deleted messages
+            ? Padding(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(Icons.block_rounded,
+                        size: 14, color: AppColors.textLight),
+                    const SizedBox(width: 6),
                     Text(
-                      data['text'] ?? '',
+                      isMe
+                          ? 'You deleted this message'
+                          : 'This message was deleted',
                       style: TextStyle(
-                          fontSize: 14,
-                          color: isMe
-                              ? Colors.white
-                              : AppColors.textDark),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      time,
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: isMe
-                              ? Colors.white70
-                              : AppColors.textLight),
+                          fontSize: 13,
+                          color: AppColors.textLight,
+                          fontStyle: FontStyle.italic),
                     ),
                   ],
                 ),
-              ),
+              )
+            : data['isImage'] == true
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Image.network(
+                      data['imageUrl'],
+                      width: 200,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Icon(Icons.broken_image_outlined),
+                      ),
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          data['text'] ?? '',
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: isMe
+                                  ? Colors.white
+                                  : AppColors.textDark),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          time,
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: isMe
+                                  ? Colors.white70
+                                  : AppColors.textLight),
+                        ),
+                      ],
+                    ),
+                  ),
       ),
     );
   }

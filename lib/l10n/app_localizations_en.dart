@@ -1,220 +1,167 @@
-// ignore: unused_import
-import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
 
-// ignore_for_file: type=lint
-
-/// The translations for English (`en`).
 class AppLocalizationsEn extends AppLocalizations {
-  AppLocalizationsEn([String locale = 'en']) : super(locale);
-
-  @override
-  String get appName => 'AgriNexa';
-
-  @override
-  String get loginTitle => 'Continue Your Journey';
-
-  @override
-  String get loginSubtitle => 'Buy and sell fresh farm products\nwith ease.';
-
-  @override
-  String get email => 'Email';
-
-  @override
-  String get emailHint => 'example@gmail.com';
-
-  @override
-  String get password => 'Password';
-
-  @override
-  String get forgotPassword => 'Forgot password?';
-
-  @override
-  String get login => 'Login';
-
-  @override
-  String get orContinueWith => 'Or Continue with';
-
-  @override
-  String get continueWithGoogle => 'Continue with Google';
-
-  @override
-  String get noAccount => 'Do not have an account? ';
-
-  @override
-  String get registerLink => 'Register';
-
-  @override
-  String get resetPassword => 'Reset Password';
-
-  @override
-  String get resetSubtitle => 'Enter your email and we\'ll send a reset link.';
-
-  @override
-  String get resetSuccess => 'Reset link sent. Check your inbox.';
-
-  @override
-  String get emailAddress => 'Email Address';
-
-  @override
-  String get sendResetLink => 'Send Reset Link';
-
-  @override
-  String get resetSent => 'Reset link sent successfully!';
-
-  @override
-  String get backToLogin => 'Back to Login';
-
-  @override
-  String get cancel => 'Cancel';
-
-  @override
-  String get createAccount => 'Create an account';
-
-  @override
-  String get registerSubtitle => 'Sign up to buy and sell fresh farm products.';
-
-  @override
-  String get firstName => 'First name';
-
-  @override
-  String get lastName => 'Last name';
-
-  @override
-  String get phoneNumber => 'Phone Number';
-
-  @override
-  String get phoneHint => '+237 234 567 890';
-
-  @override
-  String get confirmPassword => 'Confirm Password';
-
-  @override
-  String get register => 'Register';
-
-  @override
-  String get alreadyAccount => 'Already have an account? ';
-
-  @override
-  String get loginLink => 'Log in';
-
-  @override
-  String get required => 'Required';
-
-  @override
-  String get phoneRequired => 'Phone number is required';
-
-  @override
-  String get phoneInvalid => 'Please enter a valid phone number';
-
-  @override
-  String get emailRequired => 'Email is required';
-
-  @override
-  String get emailInvalid => 'Please enter a valid email address';
-
-  @override
-  String get passwordRequired => 'Password is required';
-
-  @override
-  String get passwordWeak => 'Password must be at least 6 characters';
-
-  @override
-  String get passwordConfirmRequired => 'Please confirm your password';
-
-  @override
-  String get passwordNoMatch => 'Passwords do not match';
-
-  @override
-  String get profile => 'Profile';
-
-  @override
-  String get changePhoto => 'Change photo';
-
-  @override
-  String get general => 'General';
-
-  @override
-  String get orderHistory => 'Order History';
-
-  @override
-  String get myListings => 'My Listings';
-
-  @override
-  String get paymentSettings => 'Payment Settings';
-
-  @override
-  String get pickupLocation => 'Pickup Location';
-
-  @override
-  String get authenticate => 'Authenticate';
-
-  @override
-  String get changePassword => 'Change Password';
-
-  @override
-  String get appearance => 'Appearance';
-
-  @override
-  String get darkMode => 'Dark Mode';
-
-  @override
-  String get language => 'Language';
-
-  @override
-  String get support => 'Support';
-
-  @override
-  String get writeComment => 'Write Comment';
-
-  @override
-  String get logOut => 'Log Out';
-
-  @override
-  String get needHelp => 'Need Help?';
-
-  @override
-  String get currentPassword => 'Current Password';
-
-  @override
-  String get newPassword => 'New Password';
-
-  @override
-  String get update => 'Update';
-
-  @override
-  String get passwordChanged => 'Password changed successfully!';
-
-  @override
-  String get passwordFailed => 'Failed to change password.';
-
-  @override
-  String get wrongPassword => 'Current password is incorrect.';
-
-  @override
-  String get logoutTitle => 'Log Out';
-
-  @override
-  String get logoutConfirm => 'Are you sure you want to log out?';
-
-  @override
-  String get selectLanguage => 'Select Language';
-
-  @override
-  String get english => 'English';
-
-  @override
-  String get french => 'French';
-
-  @override
-  String get navHome => 'Home';
-
-  @override
-  String get navSell => 'Sell';
-
-  @override
-  String get navListing => 'Listing';
-
-  @override
-  String get navProfile => 'Profile';
+  AppLocalizationsEn([super.locale = 'en']);
+
+  @override String get appName => 'AgriNexa';
+  @override String get loginTitle => 'Continue Your Journey';
+  @override String get loginSubtitle => 'Buy and sell fresh farm products\nwith ease.';
+  @override String get email => 'Email';
+  @override String get emailHint => 'example@gmail.com';
+  @override String get password => 'Password';
+  @override String get forgotPassword => 'Forgot password?';
+  @override String get login => 'Login';
+  @override String get orContinueWith => 'Or Continue with';
+  @override String get continueWithGoogle => 'Continue with Google';
+  @override String get noAccount => 'Do not have an account? ';
+  @override String get registerLink => 'Register';
+  @override String get resetPassword => 'Reset Password';
+  @override String get resetSubtitle => 'Enter your email and we\'ll send a reset link.';
+  @override String get resetSuccess => 'Reset link sent. Check your inbox.';
+  @override String get emailAddress => 'Email Address';
+  @override String get sendResetLink => 'Send Reset Link';
+  @override String get resetSent => 'Reset link sent successfully!';
+  @override String get backToLogin => 'Back to Login';
+  @override String get cancel => 'Cancel';
+
+  @override String get createAccount => 'Create an account';
+  @override String get registerSubtitle => 'Sign up to buy and sell fresh farm products.';
+  @override String get firstName => 'First name';
+  @override String get lastName => 'Last name';
+  @override String get phoneNumber => 'Phone Number';
+  @override String get phoneHint => '+237 234 567 890';
+  @override String get confirmPassword => 'Confirm Password';
+  @override String get register => 'Register';
+  @override String get alreadyAccount => 'Already have an account? ';
+  @override String get loginLink => 'Log in';
+  @override String get required => 'Required';
+  @override String get phoneRequired => 'Phone number is required';
+  @override String get phoneInvalid => 'Please enter a valid phone number';
+  @override String get emailRequired => 'Email is required';
+  @override String get emailInvalid => 'Please enter a valid email address';
+  @override String get passwordRequired => 'Password is required';
+  @override String get passwordWeak => 'Password must be at least 6 characters';
+  @override String get passwordConfirmRequired => 'Please confirm your password';
+  @override String get passwordNoMatch => 'Passwords do not match';
+
+  @override String get profile => 'Profile';
+  @override String get changePhoto => 'Change photo';
+  @override String get general => 'General';
+  @override String get orderHistory => 'Order History';
+  @override String get myListings => 'My Listings';
+  @override String get paymentSettings => 'Payment Settings';
+  @override String get pickupLocation => 'Pickup Location';
+  @override String get authenticate => 'Authenticate';
+  @override String get changePassword => 'Change Password';
+  @override String get appearance => 'Appearance';
+  @override String get darkMode => 'Dark Mode';
+  @override String get language => 'Language';
+  @override String get support => 'Support';
+  @override String get writeComment => 'Write Comment';
+  @override String get logOut => 'Log Out';
+  @override String get needHelp => 'Need Help?';
+  @override String get currentPassword => 'Current Password';
+  @override String get newPassword => 'New Password';
+  @override String get update => 'Update';
+  @override String get passwordChanged => 'Password changed successfully!';
+  @override String get passwordFailed => 'Failed to change password.';
+  @override String get wrongPassword => 'Current password is incorrect.';
+  @override String get logoutTitle => 'Log Out';
+  @override String get logoutConfirm => 'Are you sure you want to log out?';
+  @override String get selectLanguage => 'Select Language';
+  @override String get english => 'English';
+  @override String get french => 'French';
+
+  @override String get navHome => 'Home';
+  @override String get navSell => 'Sell';
+  @override String get navListing => 'Listing';
+  @override String get navProfile => 'Profile';
+
+  @override String get findFreshProducts => 'Find fresh farm products';
+  @override String get searchHint => 'Search by name or location...';
+  @override String get categories => 'Categories';
+  @override String get recommendedForYou => '🔥 Recommended For You';
+  @override String get noProductsYet => 'No products yet';
+  @override String get beFirstToList => 'Be the first to list a product!';
+  @override String get noProductsMatchFilters => 'No products match your filters';
+  @override String get clearFilters => 'Clear Filters';
+  @override String get filters => '🎛️ Filters';
+  @override String get clearAll => 'Clear All';
+  @override String get priceRange => '💰 Price Range (FCFA)';
+  @override String get locationFilter => '📍 Location';
+  @override String get sortBy => '↕️ Sort By';
+  @override String get applyFilters => 'Apply Filters';
+  @override String get min => 'Min';
+  @override String get max => 'Max';
+  @override String get newest => 'Newest';
+  @override String get priceLowHigh => 'Price: Low→High';
+  @override String get priceHighLow => 'Price: High→Low';
+
+  @override String get chats => 'Chats';
+  @override String get status => 'Status';
+  @override String get myStatus => 'My Status';
+  @override String get addStatus => 'Add Status';
+  @override String get photoStatus => 'Photo Status';
+  @override String get photoStatusSubtitle => 'Share a photo from your gallery';
+  @override String get textStatus => 'Text Status';
+  @override String get textStatusSubtitle => 'Share a text with colored background';
+  @override String get noConversationsYet => 'No conversations yet';
+  @override String get startChattingHint => 'Contact a seller from the marketplace to start chatting!';
+
+  @override String get typeMessage => 'Type a message...';
+  @override String get failedToSend => 'Failed to send message';
+  @override String get camera => 'Camera';
+  @override String get gallery => 'Gallery';
+  @override String get deleteMessage => 'Delete Message';
+  @override String get deleteMessageConfirm => 'Delete this message?';
+  @override String get messageDeleted => 'Message deleted';
+  @override String get online => 'Online';
+  @override String get offline => 'Offline';
+  @override String get delete => 'Delete';
+
+  @override String get orders => 'Orders';
+  @override String get myOrders => 'My Orders';
+  @override String get receivedOrders => 'Received Orders';
+  @override String get noOrdersYet => 'You have not placed any orders yet.';
+  @override String get noOrdersReceived => 'No orders received yet.';
+  @override String get confirmDelivery => 'Confirm Delivery';
+  @override String get confirmReceivedQuestion => 'Are you sure you received your order in good condition?';
+  @override String get iReceivedMyOrder => 'I Received My Order ✅';
+  @override String get contactSeller => 'Contact Seller';
+  @override String get phoneNotAvailable => 'Phone not available';
+  @override String get copy => 'Copy';
+  @override String get whatsApp => 'WhatsApp';
+  @override String get phoneCopied => 'Phone number copied!';
+  @override String get whatsAppCopied => 'Number copied! Open WhatsApp and paste to chat.';
+  @override String get confirmOrder => 'Confirm Order';
+  @override String get markAsShipped => 'Mark as Shipped 🚚';
+  @override String get waitingBuyerConfirm => 'Waiting for buyer to confirm delivery...';
+  @override String get orderCompleted => 'Order completed successfully! 🎉';
+  @override String get orderPlaced => 'Placed';
+  @override String get orderConfirmed => 'Confirmed';
+  @override String get orderShipped => 'Shipped';
+  @override String get orderDelivered => 'Delivered';
+  @override String get thankYouConfirming => 'Thank you for confirming! 🎉';
+
+  @override String get notifications => 'Notifications';
+  @override String get noNotificationsYet => 'No notifications yet';
+  @override String get notificationsHint => 'You\'ll see updates about orders and messages here';
+  @override String get clearAllNotifications => 'Clear All Notifications?';
+  @override String get clearNotificationsConfirm => 'This will delete all your notifications permanently.';
+  @override String get allNotificationsCleared => 'All notifications cleared';
+
+  @override String get sellProduct => 'Sell Product';
+  @override String get cropName => 'Crop Name';
+  @override String get categoryLabel => 'Category';
+  @override String get availableQuantity => 'Available Quantity';
+  @override String get locationLabel => 'Location';
+  @override String get descriptionLabel => 'Description';
+  @override String get pricePerUnit => 'Price per Unit';
+  @override String get listProduct => 'List Product';
+  @override String get selectImageSource => 'Select Image Source';
+  @override String get takePhoto => 'Take Photo';
+  @override String get chooseFromGallery => 'Choose from Gallery';
+  @override String get tapToAddImage => 'Tap to add product image';
+  @override String get pleaseSelectCategory => 'Please select a product category';
+  @override String get productListedSuccess => 'Product listed successfully!';
 }

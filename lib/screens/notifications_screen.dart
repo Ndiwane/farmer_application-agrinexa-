@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:agrinexa/l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'order_history_screen.dart';
 import 'message_screen.dart';
@@ -23,22 +24,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         .update({'isRead': true});
   }
 
-  Future<void> _clearAll() async {
+  Future<void> _clearAll(AppLocalizations l10n) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Clear All Notifications?'),
-        content: const Text('This will delete all your notifications permanently.'),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(l10n.clearAllNotifications),
+        content: Text(l10n.clearNotificationsConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Clear All'),
+            child: Text(l10n.clearAll),
           ),
         ],
       ),
@@ -50,7 +52,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           .collection('notifications')
           .where('toUserId', isEqualTo: _currentUserId)
           .get();
-
       for (var doc in snapshot.docs) {
         batch.delete(doc.reference);
       }
@@ -58,8 +59,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('All notifications cleared'),
+          SnackBar(
+            content: Text(l10n.allNotificationsCleared),
             backgroundColor: AppColors.success,
           ),
         );
@@ -68,29 +69,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _handleNotificationTap(Map<String, dynamic> notification) async {
-    // Mark as read
     await _markAsRead(notification['id']);
-
-    // Navigate based on type
     final type = notification['type'] ?? '';
-    
+
     if (type == 'order') {
       if (mounted) {
-        Navigator.push(
-          context,
-          AppRouter.slide(const OrderHistoryScreen()),
-        );
+        Navigator.push(context,
+            AppRouter.slide(const OrderHistoryScreen()));
       }
     } else if (type == 'message') {
       final chatId = notification['chatId'];
       final otherUserId = notification['fromUserId'];
       if (chatId != null && otherUserId != null && mounted) {
-        // Get other user info
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(otherUserId)
             .get();
-        
         if (userDoc.exists && mounted) {
           final userData = userDoc.data()!;
           Navigator.push(
@@ -110,75 +104,62 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget _buildNotificationIcon(String type) {
     if (type == 'order') {
       return Container(
-        width: 48,
-        height: 48,
+        width: 48, height: 48,
         decoration: BoxDecoration(
           color: AppColors.primary.withOpacity(0.1),
           shape: BoxShape.circle,
         ),
-        child: const Icon(
-          Icons.shopping_bag_rounded,
-          color: AppColors.primary,
-          size: 24,
-        ),
+        child: const Icon(Icons.shopping_bag_rounded,
+            color: AppColors.primary, size: 24),
       );
     } else if (type == 'message') {
       return Container(
-        width: 48,
-        height: 48,
+        width: 48, height: 48,
         decoration: BoxDecoration(
           color: Colors.blue.withOpacity(0.1),
           shape: BoxShape.circle,
         ),
-        child: const Icon(
-          Icons.message_rounded,
-          color: Colors.blue,
-          size: 24,
-        ),
+        child: const Icon(Icons.message_rounded,
+            color: Colors.blue, size: 24),
       );
     } else {
       return Container(
-        width: 48,
-        height: 48,
+        width: 48, height: 48,
         decoration: BoxDecoration(
           color: AppColors.textLight.withOpacity(0.1),
           shape: BoxShape.circle,
         ),
-        child: const Icon(
-          Icons.notifications_rounded,
-          color: AppColors.textLight,
-          size: 24,
-        ),
+        child: const Icon(Icons.notifications_rounded,
+            color: AppColors.textLight, size: 24),
       );
     }
   }
 
   String _formatTimestamp(Timestamp? timestamp) {
     if (timestamp == null) return '';
-    
     final now = DateTime.now();
     final date = timestamp.toDate();
     final diff = now.difference(date);
-
     if (diff.inMinutes < 1) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
-    
     return '${date.day}/${date.month}/${date.year}';
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
-        title: const Text('Notifications'),
+        title: Text(l10n.notifications),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_sweep_rounded),
-            onPressed: _clearAll,
-            tooltip: 'Clear all',
+            onPressed: () => _clearAll(l10n),
+            tooltip: l10n.clearAll,
           ),
         ],
       ),
@@ -195,42 +176,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
-
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 120,
-                    height: 120,
+                    width: 120, height: 120,
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.notifications_off_rounded,
-                      size: 60,
-                      color: AppColors.primary,
-                    ),
+                    child: const Icon(Icons.notifications_off_rounded,
+                        size: 60, color: AppColors.primary),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'No notifications yet',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  Text(l10n.noNotificationsYet,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
-                  const Text(
-                    'You\'ll see updates about orders\nand messages here',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textMedium,
-                    ),
-                  ),
+                  Text(l10n.notificationsHint,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 14, color: AppColors.textMedium)),
                 ],
               ),
             );
@@ -243,9 +211,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           return RefreshIndicator(
             color: AppColors.primary,
-            onRefresh: () async {
-              setState(() {});
-            },
+            onRefresh: () async => setState(() {}),
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: notifications.length,
@@ -255,7 +221,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 final title = notification['title'] ?? 'Notification';
                 final body = notification['body'] ?? '';
                 final type = notification['type'] ?? '';
-                final timestamp = notification['createdAt'] as Timestamp?;
+                final timestamp =
+                    notification['createdAt'] as Timestamp?;
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -265,7 +232,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         : AppColors.primary.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(12),
                     child: InkWell(
-                      onTap: () => _handleNotificationTap(notification),
+                      onTap: () =>
+                          _handleNotificationTap(notification),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.all(16),
@@ -276,53 +244,42 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             const SizedBox(width: 16),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          title,
+                                  Row(children: [
+                                    Expanded(
+                                      child: Text(title,
                                           style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: isRead
-                                                ? FontWeight.w500
-                                                : FontWeight.w700,
-                                          ),
+                                              fontSize: 15,
+                                              fontWeight: isRead
+                                                  ? FontWeight.w500
+                                                  : FontWeight.w700)),
+                                    ),
+                                    if (!isRead)
+                                      Container(
+                                        width: 10, height: 10,
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.primary,
+                                          shape: BoxShape.circle,
                                         ),
                                       ),
-                                      if (!isRead)
-                                        Container(
-                                          width: 10,
-                                          height: 10,
-                                          decoration: const BoxDecoration(
-                                            color: AppColors.primary,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
+                                  ]),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    body,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.textMedium,
-                                      fontWeight: isRead
-                                          ? FontWeight.normal
-                                          : FontWeight.w500,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                  Text(body,
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          color: AppColors.textMedium,
+                                          fontWeight: isRead
+                                              ? FontWeight.normal
+                                              : FontWeight.w500),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis),
                                   const SizedBox(height: 6),
-                                  Text(
-                                    _formatTimestamp(timestamp),
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textLight,
-                                    ),
-                                  ),
+                                  Text(_formatTimestamp(timestamp),
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textLight)),
                                 ],
                               ),
                             ),

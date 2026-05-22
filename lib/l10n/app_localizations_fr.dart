@@ -1,220 +1,167 @@
-// ignore: unused_import
-import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
 
-// ignore_for_file: type=lint
-
-/// The translations for French (`fr`).
 class AppLocalizationsFr extends AppLocalizations {
-  AppLocalizationsFr([String locale = 'fr']) : super(locale);
-
-  @override
-  String get appName => 'AgriNexa';
-
-  @override
-  String get loginTitle => 'Continuez Votre Parcours';
-
-  @override
-  String get loginSubtitle => 'Achetez et vendez des produits agricoles frais.';
-
-  @override
-  String get email => 'Email';
-
-  @override
-  String get emailHint => 'exemple@gmail.com';
-
-  @override
-  String get password => 'Mot de passe';
-
-  @override
-  String get forgotPassword => 'Mot de passe oublié?';
-
-  @override
-  String get login => 'Se connecter';
-
-  @override
-  String get orContinueWith => 'Ou continuer avec';
-
-  @override
-  String get continueWithGoogle => 'Continuer avec Google';
-
-  @override
-  String get noAccount => 'Vous n\'avez pas de compte? ';
-
-  @override
-  String get registerLink => 'S\'inscrire';
-
-  @override
-  String get resetPassword => 'Réinitialiser le mot de passe';
-
-  @override
-  String get resetSubtitle => 'Entrez votre email et nous enverrons un lien de réinitialisation.';
-
-  @override
-  String get resetSuccess => 'Lien envoyé. Vérifiez votre boîte de réception.';
-
-  @override
-  String get emailAddress => 'Adresse Email';
-
-  @override
-  String get sendResetLink => 'Envoyer le lien';
-
-  @override
-  String get resetSent => 'Lien de réinitialisation envoyé!';
-
-  @override
-  String get backToLogin => 'Retour à la connexion';
-
-  @override
-  String get cancel => 'Annuler';
-
-  @override
-  String get createAccount => 'Créer un compte';
-
-  @override
-  String get registerSubtitle => 'Inscrivez-vous pour acheter et vendre des produits agricoles.';
-
-  @override
-  String get firstName => 'Prénom';
-
-  @override
-  String get lastName => 'Nom de famille';
-
-  @override
-  String get phoneNumber => 'Numéro de téléphone';
-
-  @override
-  String get phoneHint => '+237 234 567 890';
-
-  @override
-  String get confirmPassword => 'Confirmer le mot de passe';
-
-  @override
-  String get register => 'S\'inscrire';
-
-  @override
-  String get alreadyAccount => 'Vous avez déjà un compte? ';
-
-  @override
-  String get loginLink => 'Se connecter';
-
-  @override
-  String get required => 'Requis';
-
-  @override
-  String get phoneRequired => 'Le numéro de téléphone est requis';
-
-  @override
-  String get phoneInvalid => 'Veuillez entrer un numéro valide';
-
-  @override
-  String get emailRequired => 'L\'email est requis';
-
-  @override
-  String get emailInvalid => 'Veuillez entrer un email valide';
-
-  @override
-  String get passwordRequired => 'Le mot de passe est requis';
-
-  @override
-  String get passwordWeak => 'Le mot de passe doit contenir au moins 6 caractères';
-
-  @override
-  String get passwordConfirmRequired => 'Veuillez confirmer votre mot de passe';
-
-  @override
-  String get passwordNoMatch => 'Les mots de passe ne correspondent pas';
-
-  @override
-  String get profile => 'Profil';
-
-  @override
-  String get changePhoto => 'Changer la photo';
-
-  @override
-  String get general => 'Général';
-
-  @override
-  String get orderHistory => 'Historique des commandes';
-
-  @override
-  String get myListings => 'Mes annonces';
-
-  @override
-  String get paymentSettings => 'Paramètres de paiement';
-
-  @override
-  String get pickupLocation => 'Lieu de collecte';
-
-  @override
-  String get authenticate => 'Authentifier';
-
-  @override
-  String get changePassword => 'Changer le mot de passe';
-
-  @override
-  String get appearance => 'Apparence';
-
-  @override
-  String get darkMode => 'Mode sombre';
-
-  @override
-  String get language => 'Langue';
-
-  @override
-  String get support => 'Support';
-
-  @override
-  String get writeComment => 'Écrire un commentaire';
-
-  @override
-  String get logOut => 'Se déconnecter';
-
-  @override
-  String get needHelp => 'Besoin d\'aide?';
-
-  @override
-  String get currentPassword => 'Mot de passe actuel';
-
-  @override
-  String get newPassword => 'Nouveau mot de passe';
-
-  @override
-  String get update => 'Mettre à jour';
-
-  @override
-  String get passwordChanged => 'Mot de passe changé avec succès!';
-
-  @override
-  String get passwordFailed => 'Échec du changement de mot de passe.';
-
-  @override
-  String get wrongPassword => 'Le mot de passe actuel est incorrect.';
-
-  @override
-  String get logoutTitle => 'Se déconnecter';
-
-  @override
-  String get logoutConfirm => 'Êtes-vous sûr de vouloir vous déconnecter?';
-
-  @override
-  String get selectLanguage => 'Choisir la langue';
-
-  @override
-  String get english => 'Anglais';
-
-  @override
-  String get french => 'Français';
-
-  @override
-  String get navHome => 'Accueil';
-
-  @override
-  String get navSell => 'Vendre';
-
-  @override
-  String get navListing => 'Annonces';
-
-  @override
-  String get navProfile => 'Profil';
+  AppLocalizationsFr([super.locale = 'fr']);
+
+  @override String get appName => 'AgriNexa';
+  @override String get loginTitle => 'Continuez Votre Parcours';
+  @override String get loginSubtitle => 'Achetez et vendez des produits agricoles frais.';
+  @override String get email => 'Email';
+  @override String get emailHint => 'exemple@gmail.com';
+  @override String get password => 'Mot de passe';
+  @override String get forgotPassword => 'Mot de passe oublié?';
+  @override String get login => 'Se connecter';
+  @override String get orContinueWith => 'Ou continuer avec';
+  @override String get continueWithGoogle => 'Continuer avec Google';
+  @override String get noAccount => 'Vous n\'avez pas de compte? ';
+  @override String get registerLink => 'S\'inscrire';
+  @override String get resetPassword => 'Réinitialiser le mot de passe';
+  @override String get resetSubtitle => 'Entrez votre email et nous enverrons un lien.';
+  @override String get resetSuccess => 'Lien envoyé. Vérifiez votre boîte de réception.';
+  @override String get emailAddress => 'Adresse Email';
+  @override String get sendResetLink => 'Envoyer le lien';
+  @override String get resetSent => 'Lien de réinitialisation envoyé!';
+  @override String get backToLogin => 'Retour à la connexion';
+  @override String get cancel => 'Annuler';
+
+  @override String get createAccount => 'Créer un compte';
+  @override String get registerSubtitle => 'Inscrivez-vous pour acheter et vendre des produits.';
+  @override String get firstName => 'Prénom';
+  @override String get lastName => 'Nom de famille';
+  @override String get phoneNumber => 'Numéro de téléphone';
+  @override String get phoneHint => '+237 234 567 890';
+  @override String get confirmPassword => 'Confirmer le mot de passe';
+  @override String get register => 'S\'inscrire';
+  @override String get alreadyAccount => 'Vous avez déjà un compte? ';
+  @override String get loginLink => 'Se connecter';
+  @override String get required => 'Requis';
+  @override String get phoneRequired => 'Le numéro de téléphone est requis';
+  @override String get phoneInvalid => 'Veuillez entrer un numéro valide';
+  @override String get emailRequired => 'L\'email est requis';
+  @override String get emailInvalid => 'Veuillez entrer un email valide';
+  @override String get passwordRequired => 'Le mot de passe est requis';
+  @override String get passwordWeak => 'Le mot de passe doit contenir au moins 6 caractères';
+  @override String get passwordConfirmRequired => 'Veuillez confirmer votre mot de passe';
+  @override String get passwordNoMatch => 'Les mots de passe ne correspondent pas';
+
+  @override String get profile => 'Profil';
+  @override String get changePhoto => 'Changer la photo';
+  @override String get general => 'Général';
+  @override String get orderHistory => 'Historique des commandes';
+  @override String get myListings => 'Mes annonces';
+  @override String get paymentSettings => 'Paramètres de paiement';
+  @override String get pickupLocation => 'Lieu de collecte';
+  @override String get authenticate => 'Authentifier';
+  @override String get changePassword => 'Changer le mot de passe';
+  @override String get appearance => 'Apparence';
+  @override String get darkMode => 'Mode sombre';
+  @override String get language => 'Langue';
+  @override String get support => 'Support';
+  @override String get writeComment => 'Écrire un commentaire';
+  @override String get logOut => 'Se déconnecter';
+  @override String get needHelp => 'Besoin d\'aide?';
+  @override String get currentPassword => 'Mot de passe actuel';
+  @override String get newPassword => 'Nouveau mot de passe';
+  @override String get update => 'Mettre à jour';
+  @override String get passwordChanged => 'Mot de passe changé avec succès!';
+  @override String get passwordFailed => 'Échec du changement de mot de passe.';
+  @override String get wrongPassword => 'Le mot de passe actuel est incorrect.';
+  @override String get logoutTitle => 'Se déconnecter';
+  @override String get logoutConfirm => 'Êtes-vous sûr de vouloir vous déconnecter?';
+  @override String get selectLanguage => 'Choisir la langue';
+  @override String get english => 'Anglais';
+  @override String get french => 'Français';
+
+  @override String get navHome => 'Accueil';
+  @override String get navSell => 'Vendre';
+  @override String get navListing => 'Annonces';
+  @override String get navProfile => 'Profil';
+
+  @override String get findFreshProducts => 'Trouvez des produits agricoles frais';
+  @override String get searchHint => 'Rechercher par nom ou lieu...';
+  @override String get categories => 'Catégories';
+  @override String get recommendedForYou => '🔥 Recommandé Pour Vous';
+  @override String get noProductsYet => 'Pas encore de produits';
+  @override String get beFirstToList => 'Soyez le premier à lister un produit!';
+  @override String get noProductsMatchFilters => 'Aucun produit ne correspond aux filtres';
+  @override String get clearFilters => 'Effacer les filtres';
+  @override String get filters => '🎛️ Filtres';
+  @override String get clearAll => 'Tout effacer';
+  @override String get priceRange => '💰 Plage de prix (FCFA)';
+  @override String get locationFilter => '📍 Lieu';
+  @override String get sortBy => '↕️ Trier par';
+  @override String get applyFilters => 'Appliquer les filtres';
+  @override String get min => 'Min';
+  @override String get max => 'Max';
+  @override String get newest => 'Plus récent';
+  @override String get priceLowHigh => 'Prix: Croissant';
+  @override String get priceHighLow => 'Prix: Décroissant';
+
+  @override String get chats => 'Discussions';
+  @override String get status => 'Statut';
+  @override String get myStatus => 'Mon Statut';
+  @override String get addStatus => 'Ajouter un Statut';
+  @override String get photoStatus => 'Statut Photo';
+  @override String get photoStatusSubtitle => 'Partagez une photo de votre galerie';
+  @override String get textStatus => 'Statut Texte';
+  @override String get textStatusSubtitle => 'Partagez un texte avec fond coloré';
+  @override String get noConversationsYet => 'Pas encore de conversations';
+  @override String get startChattingHint => 'Contactez un vendeur depuis le marché pour commencer!';
+
+  @override String get typeMessage => 'Tapez un message...';
+  @override String get failedToSend => 'Échec de l\'envoi du message';
+  @override String get camera => 'Caméra';
+  @override String get gallery => 'Galerie';
+  @override String get deleteMessage => 'Supprimer le message';
+  @override String get deleteMessageConfirm => 'Supprimer ce message?';
+  @override String get messageDeleted => 'Message supprimé';
+  @override String get online => 'En ligne';
+  @override String get offline => 'Hors ligne';
+  @override String get delete => 'Supprimer';
+
+  @override String get orders => 'Commandes';
+  @override String get myOrders => 'Mes Commandes';
+  @override String get receivedOrders => 'Commandes Reçues';
+  @override String get noOrdersYet => 'Vous n\'avez pas encore passé de commandes.';
+  @override String get noOrdersReceived => 'Aucune commande reçue.';
+  @override String get confirmDelivery => 'Confirmer la livraison';
+  @override String get confirmReceivedQuestion => 'Êtes-vous sûr d\'avoir reçu votre commande en bon état?';
+  @override String get iReceivedMyOrder => 'J\'ai reçu ma commande ✅';
+  @override String get contactSeller => 'Contacter le vendeur';
+  @override String get phoneNotAvailable => 'Téléphone non disponible';
+  @override String get copy => 'Copier';
+  @override String get whatsApp => 'WhatsApp';
+  @override String get phoneCopied => 'Numéro copié!';
+  @override String get whatsAppCopied => 'Numéro copié! Ouvrez WhatsApp et collez pour chatter.';
+  @override String get confirmOrder => 'Confirmer la commande';
+  @override String get markAsShipped => 'Marquer comme expédié 🚚';
+  @override String get waitingBuyerConfirm => 'En attente de la confirmation de l\'acheteur...';
+  @override String get orderCompleted => 'Commande terminée avec succès! 🎉';
+  @override String get orderPlaced => 'Passée';
+  @override String get orderConfirmed => 'Confirmée';
+  @override String get orderShipped => 'Expédiée';
+  @override String get orderDelivered => 'Livrée';
+  @override String get thankYouConfirming => 'Merci pour votre confirmation! 🎉';
+
+  @override String get notifications => 'Notifications';
+  @override String get noNotificationsYet => 'Pas encore de notifications';
+  @override String get notificationsHint => 'Vous verrez ici les mises à jour sur les commandes';
+  @override String get clearAllNotifications => 'Effacer toutes les notifications?';
+  @override String get clearNotificationsConfirm => 'Cela supprimera définitivement toutes vos notifications.';
+  @override String get allNotificationsCleared => 'Toutes les notifications effacées';
+
+  @override String get sellProduct => 'Vendre un produit';
+  @override String get cropName => 'Nom de la culture';
+  @override String get categoryLabel => 'Catégorie';
+  @override String get availableQuantity => 'Quantité disponible';
+  @override String get locationLabel => 'Lieu';
+  @override String get descriptionLabel => 'Description';
+  @override String get pricePerUnit => 'Prix par unité';
+  @override String get listProduct => 'Mettre en vente';
+  @override String get selectImageSource => 'Sélectionner la source';
+  @override String get takePhoto => 'Prendre une photo';
+  @override String get chooseFromGallery => 'Choisir depuis la galerie';
+  @override String get tapToAddImage => 'Appuyez pour ajouter une image';
+  @override String get pleaseSelectCategory => 'Veuillez sélectionner une catégorie';
+  @override String get productListedSuccess => 'Produit mis en vente avec succès!';
 }

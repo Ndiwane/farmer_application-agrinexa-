@@ -470,8 +470,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 }
               } on FirebaseAuthException catch (e) {
                 String message = l10n.passwordFailed;
-                if (e.code == 'wrong-password') message = l10n.wrongPassword;
-                else if (e.code == 'weak-password') message = l10n.passwordWeak;
+                if (e.code == 'wrong-password') {
+                  message = l10n.wrongPassword;
+                } else if (e.code == 'weak-password') message = l10n.passwordWeak;
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(message),
