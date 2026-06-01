@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
+import '../utils/admin_config.dart';
 import '../services/notification_service.dart';
-import '../utils/app_router.dart';
-import 'message_screen.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -36,7 +36,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
-        title: const Text('Orders'),
+        title: const Text('My Orders'),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppColors.primary,
@@ -51,24 +51,12 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // My Orders (as buyer) — shows seller contact + status tracker
-          _OrdersList(
-            stream: FirebaseFirestore.instance
-                .collection('orders')
-                .where('buyerId', isEqualTo: currentUser?.uid)
-                .orderBy('createdAt', descending: true)
-                .snapshots(),
-            emptyMessage: 'You have not placed any orders yet.',
+          _OrdersTab(
+            userId: currentUser?.uid ?? '',
             isBuyer: true,
           ),
-          // Received Orders (as seller) — shows status update buttons
-          _OrdersList(
-            stream: FirebaseFirestore.instance
-                .collection('orders')
-                .where('sellerId', isEqualTo: currentUser?.uid)
-                .orderBy('createdAt', descending: true)
-                .snapshots(),
-            emptyMessage: 'No orders received yet.',
+          _OrdersTab(
+            userId: currentUser?.uid ?? '',
             isBuyer: false,
           ),
         ],
@@ -77,66 +65,275 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
   }
 }
 
-class _OrdersList extends StatelessWidget {
-  final Stream<QuerySnapshot> stream;
-  final String emptyMessage;
+// ── Orders Tab with Search ────────────────────────────────────────────────────
+class _OrdersTab extends StatefulWidget {
+  final String userId;
   final bool isBuyer;
 
-  const _OrdersList({
-    required this.stream,
-    required this.emptyMessage,
-    required this.isBuyer,
-  });
+  const _OrdersTab({required this.userId, required this.isBuyer});
+
+  @override
+  State<_OrdersTab> createState() => _OrdersTabState();
+}
+
+class _OrdersTabState extends State<_OrdersTab> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  DateTime? _selectedDate;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2024),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _selectedDate = null;
+    });
+  }
+
+  bool _matchesFilters(Map<String, dynamic> data) {
+    // Search by product name
+    if (_searchQuery.isNotEmpty) {
+      final name = (data['productName'] as String? ?? '').toLowerCase();
+      if (!name.contains(_searchQuery.toLowerCase())) return false;
+    }
+
+    // Filter by date
+    if (_selectedDate != null) {
+      final ts = data['createdAt'] as Timestamp?;
+      if (ts == null) return false;
+      final orderDate = ts.toDate();
+      final selected = _selectedDate!;
+      if (orderDate.year != selected.year ||
+          orderDate.month != selected.month ||
+          orderDate.day != selected.day) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: stream,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          );
-        }
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Error loading orders',
-                style: TextStyle(color: AppColors.textMedium)),
-          );
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.receipt_long_outlined,
-                    size: 60, color: AppColors.textLight),
-                const SizedBox(height: 12),
-                Text(emptyMessage,
-                    style: TextStyle(
-                        color: AppColors.textMedium, fontSize: 14)),
-              ],
-            ),
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) {
-            final doc = snapshot.data!.docs[index];
-            final data = doc.data() as Map<String, dynamic>;
-            return _OrderCard(
-              orderId: doc.id,
-              data: data,
-              isBuyer: isBuyer,
-            );
-          },
-        );
-      },
+    final stream = widget.isBuyer
+        ? FirebaseFirestore.instance
+            .collection('orders')
+            .where('buyerId', isEqualTo: widget.userId)
+            .orderBy('createdAt', descending: true)
+            .snapshots()
+        : FirebaseFirestore.instance
+            .collection('orders')
+            .where('sellerId', isEqualTo: widget.userId)
+            .orderBy('createdAt', descending: true)
+            .snapshots();
+
+    return Column(
+      children: [
+        // ── Search + Date filter bar ────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Column(
+            children: [
+              // Search by product name
+              TextFormField(
+                controller: _searchController,
+                onChanged: (v) => setState(() => _searchQuery = v),
+                decoration: InputDecoration(
+                  hintText: 'Search by product name...',
+                  prefixIcon: const Icon(Icons.search_rounded,
+                      color: AppColors.textLight, size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close_rounded,
+                              color: AppColors.textLight, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: AppColors.divider),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: AppColors.divider),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                        color: AppColors.primary, width: 1.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Date filter row
+              Row(children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _pickDate,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _selectedDate != null
+                            ? AppColors.primaryLighter
+                            : Theme.of(context).appBarTheme.backgroundColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _selectedDate != null
+                              ? AppColors.primary
+                              : AppColors.divider,
+                        ),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.calendar_today_rounded,
+                            size: 16,
+                            color: _selectedDate != null
+                                ? AppColors.primary
+                                : AppColors.textLight),
+                        const SizedBox(width: 8),
+                        Text(
+                          _selectedDate != null
+                              ? DateFormat('MMM d, yyyy')
+                                  .format(_selectedDate!)
+                              : 'Filter by date',
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: _selectedDate != null
+                                  ? AppColors.primary
+                                  : AppColors.textLight,
+                              fontWeight: _selectedDate != null
+                                  ? FontWeight.w600
+                                  : FontWeight.w400),
+                        ),
+                      ]),
+                    ),
+                  ),
+                ),
+                if (_selectedDate != null || _searchQuery.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _clearFilters,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: AppColors.danger.withOpacity(0.3)),
+                      ),
+                      child: const Text('Clear',
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.danger,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ]),
+            ],
+          ),
+        ),
+
+        // ── Orders list ─────────────────────────────────────────────────
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: stream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.primary));
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return _EmptyOrders(isBuyer: widget.isBuyer);
+              }
+
+              // Apply filters
+              final filtered = snapshot.data!.docs.where((doc) {
+                return _matchesFilters(
+                    doc.data() as Map<String, dynamic>);
+              }).toList();
+
+              if (filtered.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('😕',
+                          style: TextStyle(fontSize: 48)),
+                      const SizedBox(height: 12),
+                      const Text('No orders match your search',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15)),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _clearFilters,
+                        child: const Text('Clear filters',
+                            style: TextStyle(color: AppColors.primary)),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final doc = filtered[index];
+                  final data = doc.data() as Map<String, dynamic>;
+                  return _OrderCard(
+                    orderId: doc.id,
+                    data: data,
+                    isBuyer: widget.isBuyer,
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
 
+// ── Order Card ────────────────────────────────────────────────────────────────
 class _OrderCard extends StatelessWidget {
   final String orderId;
   final Map<String, dynamic> data;
@@ -148,21 +345,117 @@ class _OrderCard extends StatelessWidget {
     required this.isBuyer,
   });
 
-  // Map status to display color
   Color _statusColor(String status) {
     switch (status) {
       case 'Confirmed': return Colors.blue;
       case 'Shipped':   return Colors.orange;
       case 'Delivered': return AppColors.success;
       case 'Cancelled': return AppColors.danger;
-      default:          return AppColors.warning; // Pending
+      default:          return AppColors.warning;
     }
   }
 
   String _formatDate(Timestamp? timestamp) {
     if (timestamp == null) return '';
-    final date = timestamp.toDate();
-    return '${date.day}/${date.month}/${date.year}';
+    return DateFormat('dd MMM yyyy').format(timestamp.toDate());
+  }
+
+  Future<void> _deleteOrder(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Order?',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text(
+            'This order will be removed from your history. This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await FirebaseFirestore.instance
+          .collection('orders')
+          .doc(orderId)
+          .delete();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order deleted'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDelivery(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        title: const Text('Confirm Delivery',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text(
+            'Are you sure you received your order in good condition?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success),
+            child: const Text('Yes, Received!'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    await FirebaseFirestore.instance
+        .collection('orders')
+        .doc(orderId)
+        .update({
+      'status': 'Delivered',
+      'statusUpdatedAt': FieldValue.serverTimestamp(),
+      'deliveredAt': FieldValue.serverTimestamp(),
+    });
+
+    final sellerId = data['sellerId'] as String?;
+    if (sellerId != null && sellerId.isNotEmpty) {
+      await NotificationService.sendNotificationToUser(
+        userId: sellerId,
+        title: '✅ Order Delivered!',
+        body:
+            '${data['buyerName']} confirmed receiving ${data['productName']}.',
+        data: {'type': 'order'},
+      );
+    }
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Thank you for confirming! 🎉'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
   }
 
   @override
@@ -171,7 +464,7 @@ class _OrderCard extends StatelessWidget {
     final timestamp = data['createdAt'] as Timestamp?;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: Theme.of(context).appBarTheme.backgroundColor,
         borderRadius: BorderRadius.circular(14),
@@ -185,18 +478,16 @@ class _OrderCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // ── Order header ───────────────────────────────────────────────
+          // Order header
           Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                // Product image
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: Image.network(
                     data['productImage'] ?? '',
-                    width: 60, height: 60,
-                    fit: BoxFit.cover,
+                    width: 60, height: 60, fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => Container(
                       width: 60, height: 60,
                       color: AppColors.primaryLighter,
@@ -212,15 +503,20 @@ class _OrderCard extends StatelessWidget {
                     children: [
                       Text(data['productName'] ?? '',
                           style: const TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 14)),
+                              fontWeight: FontWeight.w700, fontSize: 14),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 4),
-                      Text(
-                        isBuyer
-                            ? 'Seller: ${data['sellerName'] ?? ''}'
-                            : 'Buyer: ${data['buyerName'] ?? ''}',
-                        style: TextStyle(
-                            fontSize: 12, color: AppColors.textMedium),
-                      ),
+                      Row(children: [
+                        const Icon(Icons.verified_rounded,
+                            color: AppColors.primary, size: 13),
+                        const SizedBox(width: 4),
+                        Text(AdminConfig.verifiedLabel,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600)),
+                      ]),
                       const SizedBox(height: 4),
                       Text(_formatDate(timestamp),
                           style: TextStyle(
@@ -228,27 +524,44 @@ class _OrderCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Status badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _statusColor(status).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _statusColor(status)),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Status badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _statusColor(status).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(status,
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _statusColor(status))),
+                    ),
+                    const SizedBox(height: 6),
+                    // ✅ Delete button
+                    GestureDetector(
+                      onTap: () => _deleteOrder(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: AppColors.danger.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(Icons.delete_outline_rounded,
+                            color: AppColors.danger, size: 16),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
 
-          // ── Order details row ──────────────────────────────────────────
+          // Order details
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
             child: Column(
@@ -260,7 +573,8 @@ class _OrderCard extends StatelessWidget {
                   children: [
                     _DetailItem(
                       label: 'Quantity',
-                      value: '${data['quantity'] ?? 0} ${data['unit'] ?? 'kg'}',
+                      value:
+                          '${data['quantity'] ?? 0} ${data['unit'] ?? 'kg'}',
                     ),
                     _DetailItem(
                       label: 'Delivery',
@@ -268,42 +582,37 @@ class _OrderCard extends StatelessWidget {
                     ),
                     _DetailItem(
                       label: 'Total',
-                      value: '${(data['total'] ?? 0).toStringAsFixed(0)} FCFA',
+                      value:
+                          '${(data['total'] ?? 0).toStringAsFixed(0)} FCFA',
                       isHighlighted: true,
                     ),
                   ],
                 ),
+                const SizedBox(height: 10),
               ],
             ),
           ),
 
-          // ── Status Tracker ─────────────────────────────────────────────
+          // Status tracker
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
             child: _StatusTracker(status: status),
           ),
 
-          // ── BUYER SECTION: Seller contact + Confirm received ───────────
+          // Buyer actions
           if (isBuyer) ...[
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: Column(
                 children: [
-                  // Seller contact info
-                  _SellerContactCard(
-                    orderId: orderId,
-                    data: data,
-                  ),
-
-                  // "I received my order" button — only when shipped
+                  const _AgriNexaSupportCard(),
                   if (status == 'Shipped') ...[
                     const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () =>
-                            _confirmDelivery(context, orderId, data),
+                        onPressed: () => _confirmDelivery(context),
                         icon: const Icon(Icons.check_circle_rounded,
                             size: 18),
                         label: const Text('I Received My Order ✅'),
@@ -319,8 +628,8 @@ class _OrderCard extends StatelessWidget {
             ),
           ],
 
-          // ── SELLER SECTION: Status update buttons ──────────────────────
-          if (!isBuyer) ...[
+          // Admin actions
+          if (!isBuyer)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
               child: _SellerStatusButtons(
@@ -329,97 +638,150 @@ class _OrderCard extends StatelessWidget {
                 data: data,
               ),
             ),
-          ],
         ],
       ),
     );
-  }
-
-  /// Buyer confirms they received the product
-  Future<void> _confirmDelivery(
-    BuildContext context,
-    String orderId,
-    Map<String, dynamic> data,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: const Text('Confirm Delivery',
-            style: TextStyle(fontWeight: FontWeight.w700)),
-        content: const Text(
-            'Are you sure you received your order in good condition?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('No'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success),
-            child: const Text('Yes, Received!'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    // Update order status to Delivered
-    await FirebaseFirestore.instance
-        .collection('orders')
-        .doc(orderId)
-        .update({
-      'status': 'Delivered',
-      'statusUpdatedAt': FieldValue.serverTimestamp(),
-      'deliveredAt': FieldValue.serverTimestamp(),
-    });
-
-    // Notify seller that order was delivered
-    final sellerId = data['sellerId'] as String?;
-    if (sellerId != null && sellerId.isNotEmpty) {
-      await NotificationService.sendNotificationToUser(
-        userId: sellerId,
-        title: '✅ Order Delivered!',
-        body:
-            '${data['buyerName']} confirmed receiving ${data['productName']}. Payment will be processed.',
-        data: {'type': 'order'},
-      );
-    }
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Thank you for confirming! 🎉'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    }
   }
 }
 
-/// Shows the 4-step status progress tracker
+// ── AgriNexa Support Card ─────────────────────────────────────────────────────
+class _AgriNexaSupportCard extends StatelessWidget {
+  const _AgriNexaSupportCard();
+
+  Future<void> _openWhatsApp(BuildContext context) async {
+    final message = Uri.encodeComponent(
+        'Hello AgriNexa! I need help with my order.');
+    final directUrl = Uri.parse(
+        'whatsapp://send?phone=${AdminConfig.supportWhatsApp}&text=$message');
+    final webUrl = Uri.parse(
+        'https://wa.me/${AdminConfig.supportWhatsApp}?text=$message');
+    if (await canLaunchUrl(directUrl)) {
+      await launchUrl(directUrl);
+    } else if (await canLaunchUrl(webUrl)) {
+      await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _openEmail(BuildContext context) async {
+    final url = Uri(
+      scheme: 'mailto',
+      path: AdminConfig.supportEmail,
+      queryParameters: {
+        'subject': 'AgriNexa Order Support',
+        'body': 'Hello AgriNexa team,\n\nI need help with my order:\n\n',
+      },
+    );
+    if (await canLaunchUrl(url)) await launchUrl(url);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLighter,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Icon(Icons.support_agent_rounded,
+                color: AppColors.primary, size: 18),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('Need Help With Your Order?',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: AppColors.primary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Row(children: [
+                Icon(Icons.verified_rounded, color: Colors.white, size: 10),
+                SizedBox(width: 2),
+                Text('AgriNexa',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700)),
+              ]),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          const Text('Contact our support team for any order issues.',
+              style: TextStyle(fontSize: 12, color: AppColors.primary)),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _openWhatsApp(context),
+                icon: const Icon(Icons.message_rounded, size: 16),
+                label: const Text('WhatsApp',
+                    style: TextStyle(fontSize: 12)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF25D366),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _openEmail(context),
+                icon: const Icon(Icons.email_rounded, size: 16),
+                label: const Text('Email',
+                    style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.primary),
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Status Tracker ────────────────────────────────────────────────────────────
 class _StatusTracker extends StatelessWidget {
   final String status;
   const _StatusTracker({required this.status});
 
-  // Order of statuses
-  static const List<Map<String, dynamic>> _steps = [
-    {'label': 'Placed',    'icon': Icons.shopping_cart_outlined},
-    {'label': 'Confirmed', 'icon': Icons.check_circle_outline_rounded},
-    {'label': 'Shipped',   'icon': Icons.local_shipping_outlined},
-    {'label': 'Delivered', 'icon': Icons.home_outlined},
+  static const List<IconData> _icons = [
+    Icons.shopping_cart_outlined,
+    Icons.check_circle_outline_rounded,
+    Icons.local_shipping_outlined,
+    Icons.home_outlined,
   ];
 
-  // Get current step index
+  static const List<String> _labels = [
+    'Placed', 'Confirmed', 'Shipped', 'Delivered'
+  ];
+
   int get _currentStep {
     switch (status) {
       case 'Confirmed': return 1;
       case 'Shipped':   return 2;
       case 'Delivered': return 3;
-      default:          return 0; // Pending
+      default:          return 0;
     }
   }
 
@@ -432,18 +794,15 @@ class _StatusTracker extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
-        children: List.generate(_steps.length, (index) {
+        children: List.generate(4, (index) {
           final isCompleted = index <= _currentStep;
-          final isLast = index == _steps.length - 1;
-
+          final isLast = index == 3;
           return Expanded(
             child: Row(
               children: [
-                // Step circle
                 Expanded(
                   child: Column(
                     children: [
-                      // Circle with icon
                       Container(
                         width: 36, height: 36,
                         decoration: BoxDecoration(
@@ -452,33 +811,26 @@ class _StatusTracker extends StatelessWidget {
                               : AppColors.divider,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(
-                          _steps[index]['icon'] as IconData,
-                          size: 18,
-                          color: isCompleted
-                              ? Colors.white
-                              : AppColors.textLight,
-                        ),
+                        child: Icon(_icons[index],
+                            size: 18,
+                            color: isCompleted
+                                ? Colors.white
+                                : AppColors.textLight),
                       ),
                       const SizedBox(height: 4),
-                      // Step label
-                      Text(
-                        _steps[index]['label'] as String,
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: isCompleted
-                              ? FontWeight.w700
-                              : FontWeight.w400,
-                          color: isCompleted
-                              ? AppColors.primary
-                              : AppColors.textLight,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+                      Text(_labels[index],
+                          style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: isCompleted
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
+                              color: isCompleted
+                                  ? AppColors.primary
+                                  : AppColors.textLight),
+                          textAlign: TextAlign.center),
                     ],
                   ),
                 ),
-                // Connecting line between steps
                 if (!isLast)
                   Expanded(
                     child: Container(
@@ -498,172 +850,7 @@ class _StatusTracker extends StatelessWidget {
   }
 }
 
-/// Shows seller contact info for buyer (phone + chat)
-class _SellerContactCard extends StatelessWidget {
-  final String orderId;
-  final Map<String, dynamic> data;
-
-  const _SellerContactCard({
-    required this.orderId,
-    required this.data,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final sellerPhone = data['sellerPhone'] as String? ?? '';
-    final sellerId = data['sellerId'] as String? ?? '';
-    final sellerName = data['sellerName'] as String? ?? 'Seller';
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.primaryLighter,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(children: [
-            const Icon(Icons.headset_mic_rounded,
-                color: AppColors.primary, size: 16),
-            const SizedBox(width: 6),
-            const Text('Contact Seller',
-                style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: AppColors.primary)),
-          ]),
-          const SizedBox(height: 8),
-
-          // Phone number row
-          if (sellerPhone.isNotEmpty)
-            Row(children: [
-              const Icon(Icons.phone_rounded,
-                  size: 14, color: AppColors.textMedium),
-              const SizedBox(width: 6),
-              Text(sellerPhone,
-                  style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600)),
-              const Spacer(),
-              // Copy phone button
-              GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: sellerPhone));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Phone number copied!'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text('Copy',
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ]),
-          if (sellerPhone.isEmpty)
-            Text('Phone not available',
-                style: TextStyle(
-                    fontSize: 12, color: AppColors.textLight)),
-          const SizedBox(height: 10),
-
-          // Action buttons — Chat + WhatsApp
-          Row(children: [
-            // In-app chat button
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  if (sellerId.isEmpty) return;
-
-                  // Get seller info for chat
-                  final sellerDoc = await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(sellerId)
-                      .get();
-
-                  if (context.mounted && sellerDoc.exists) {
-                    final currentUser =
-                        FirebaseAuth.instance.currentUser!;
-                    // Generate chat ID
-                    final chatId = [currentUser.uid, sellerId]
-                      ..sort();
-                    Navigator.push(
-                      context,
-                      AppRouter.slide(MessageScreen(
-                        chatId: chatId.join('_'),
-                        otherUserId: sellerId,
-                        otherUserName: sellerName,
-                        otherUserPhoto:
-                            sellerDoc.data()?['photoUrl'],
-                      )),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.chat_rounded, size: 16),
-                label: const Text('Chat',
-                    style: TextStyle(fontSize: 12)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.primary),
-                  foregroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-
-            // WhatsApp button
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: sellerPhone.isEmpty
-                    ? null
-                    : () {
-                        // Copy number for WhatsApp
-                        final phone = sellerPhone.startsWith('+')
-                            ? sellerPhone
-                            : '+$sellerPhone';
-                        Clipboard.setData(
-                            ClipboardData(text: phone));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Number copied! Open WhatsApp and paste to chat.'),
-                            backgroundColor: AppColors.success,
-                          ),
-                        );
-                      },
-                icon: const Icon(Icons.message_rounded, size: 16),
-                label: const Text('WhatsApp',
-                    style: TextStyle(fontSize: 12)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF25D366),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ),
-          ]),
-        ],
-      ),
-    );
-  }
-}
-
-/// Seller's status update buttons with push notifications
+// ── Seller Status Buttons (Admin) ─────────────────────────────────────────────
 class _SellerStatusButtons extends StatefulWidget {
   final String orderId;
   final String currentStatus;
@@ -685,7 +872,6 @@ class _SellerStatusButtonsState extends State<_SellerStatusButtons> {
   Future<void> _updateStatus(String newStatus) async {
     setState(() => _isUpdating = true);
     try {
-      // Update order status
       await FirebaseFirestore.instance
           .collection('orders')
           .doc(widget.orderId)
@@ -694,27 +880,24 @@ class _SellerStatusButtonsState extends State<_SellerStatusButtons> {
         'statusUpdatedAt': FieldValue.serverTimestamp(),
       });
 
-      // Notify buyer of status update
       final buyerId = widget.data['buyerId'] as String?;
       if (buyerId != null && buyerId.isNotEmpty) {
-        String notifTitle = '';
-        String notifBody = '';
-
+        String title = '';
+        String body = '';
         if (newStatus == 'Confirmed') {
-          notifTitle = '✅ Order Confirmed!';
-          notifBody =
-              '${widget.data['sellerName']} confirmed your order for ${widget.data['productName']}. Preparing for delivery!';
+          title = '✅ Order Confirmed!';
+          body =
+              'AgriNexa confirmed your order for ${widget.data['productName']}.';
         } else if (newStatus == 'Shipped') {
-          notifTitle = '🚚 Order Shipped!';
-          notifBody =
+          title = '🚚 Order Shipped!';
+          body =
               'Your order of ${widget.data['productName']} is on its way!';
         }
-
-        if (notifTitle.isNotEmpty) {
+        if (title.isNotEmpty) {
           await NotificationService.sendNotificationToUser(
             userId: buyerId,
-            title: notifTitle,
-            body: notifBody,
+            title: title,
+            body: body,
             data: {'type': 'order'},
           );
         }
@@ -723,7 +906,7 @@ class _SellerStatusButtonsState extends State<_SellerStatusButtons> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Order marked as $newStatus! Buyer notified.'),
+            content: Text('Order marked as $newStatus!'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -744,12 +927,8 @@ class _SellerStatusButtonsState extends State<_SellerStatusButtons> {
 
   @override
   Widget build(BuildContext context) {
-    // Determine what action seller can take
-    Widget? actionButton;
-
     if (widget.currentStatus == 'Pending') {
-      // Seller can confirm order
-      actionButton = ElevatedButton.icon(
+      return ElevatedButton.icon(
         onPressed: _isUpdating ? null : () => _updateStatus('Confirmed'),
         icon: const Icon(Icons.check_circle_rounded, size: 18),
         label: _isUpdating
@@ -764,8 +943,7 @@ class _SellerStatusButtonsState extends State<_SellerStatusButtons> {
         ),
       );
     } else if (widget.currentStatus == 'Confirmed') {
-      // Seller can mark as shipped
-      actionButton = ElevatedButton.icon(
+      return ElevatedButton.icon(
         onPressed: _isUpdating ? null : () => _updateStatus('Shipped'),
         icon: const Icon(Icons.local_shipping_rounded, size: 18),
         label: _isUpdating
@@ -780,33 +958,29 @@ class _SellerStatusButtonsState extends State<_SellerStatusButtons> {
         ),
       );
     } else if (widget.currentStatus == 'Shipped') {
-      // Waiting for buyer to confirm receipt
-      actionButton = Container(
+      return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppColors.primaryLighter,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.hourglass_top_rounded,
+            Icon(Icons.hourglass_top_rounded,
                 color: AppColors.primary, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              'Waiting for buyer to confirm delivery...',
-              style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w500),
-            ),
+            SizedBox(width: 8),
+            Text('Waiting for buyer to confirm...',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w500)),
           ],
         ),
       );
     } else if (widget.currentStatus == 'Delivered') {
-      // Order complete
-      actionButton = Container(
+      return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -819,23 +993,52 @@ class _SellerStatusButtonsState extends State<_SellerStatusButtons> {
             Icon(Icons.check_circle_rounded,
                 color: AppColors.success, size: 18),
             SizedBox(width: 8),
-            Text(
-              'Order completed successfully! 🎉',
-              style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.success,
-                  fontWeight: FontWeight.w600),
-            ),
+            Text('Order completed successfully! 🎉',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.success,
+                    fontWeight: FontWeight.w600)),
           ],
         ),
       );
     }
-
-    if (actionButton == null) return const SizedBox.shrink();
-    return actionButton;
+    return const SizedBox.shrink();
   }
 }
 
+// ── Empty Orders ──────────────────────────────────────────────────────────────
+class _EmptyOrders extends StatelessWidget {
+  final bool isBuyer;
+  const _EmptyOrders({required this.isBuyer});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.receipt_long_outlined,
+              size: 60, color: AppColors.textLight),
+          const SizedBox(height: 12),
+          Text(
+            isBuyer ? 'No orders yet' : 'No received orders yet',
+            style: const TextStyle(
+                fontWeight: FontWeight.w600, fontSize: 16),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            isBuyer
+                ? 'Your orders will appear here'
+                : 'Orders from buyers will appear here',
+            style: TextStyle(color: AppColors.textMedium, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Detail Item ───────────────────────────────────────────────────────────────
 class _DetailItem extends StatelessWidget {
   final String label;
   final String value;

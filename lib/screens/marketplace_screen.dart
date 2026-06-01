@@ -23,7 +23,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'All';
   String _selectedLocation = 'All';
-  String _sortKey = 'newest'; // Internal key: newest, low_high, high_low
+  String _sortKey = 'newest';
   double? _minPrice;
   double? _maxPrice;
 
@@ -33,7 +33,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       _maxPrice != null ||
       _sortKey != 'newest';
 
-  // Categories (names are universal/Cameroon crop names)
   static const List<Map<String, String>> _categories = [
     {'name': 'All',        'emoji': '🌿'},
     {'name': 'Vegetables', 'emoji': '🥬'},
@@ -70,7 +69,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     });
   }
 
-  /// Get translated sort label from internal key
   String _sortLabel(String key, AppLocalizations l10n) {
     switch (key) {
       case 'low_high': return l10n.priceLowHigh;
@@ -106,14 +104,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               ),
               decoration: BoxDecoration(
                 color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Handle bar
                   Center(
                     child: Container(
                       width: 40, height: 4,
@@ -124,8 +121,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       ),
                     ),
                   ),
-
-                  // Header
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -144,26 +139,21 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                             });
                           },
                           child: Text(l10n.clearAll,
-                              style:
-                                  const TextStyle(color: AppColors.danger)),
+                              style: const TextStyle(color: AppColors.danger)),
                         ),
                       ],
                     ),
                   ),
                   const Divider(),
-
                   Flexible(
                     child: SingleChildScrollView(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Price Range
                           Text(l10n.priceRange,
                               style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700)),
+                                  fontSize: 14, fontWeight: FontWeight.w700)),
                           const SizedBox(height: 10),
                           Row(children: [
                             Expanded(
@@ -173,34 +163,28 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                 decoration: InputDecoration(
                                   hintText: l10n.min,
                                   prefixText: 'FCFA ',
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
                                   border: OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                        color: AppColors.divider),
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide:
+                                        BorderSide(color: AppColors.divider),
                                   ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                        color: AppColors.divider),
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide:
+                                        BorderSide(color: AppColors.divider),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(10),
                                     borderSide: const BorderSide(
-                                        color: AppColors.primary,
-                                        width: 1.5),
+                                        color: AppColors.primary, width: 1.5),
                                   ),
                                 ),
                               ),
                             ),
                             const Padding(
-                              padding:
-                                  EdgeInsets.symmetric(horizontal: 10),
+                              padding: EdgeInsets.symmetric(horizontal: 10),
                               child: Text('—',
                                   style: TextStyle(
                                       color: AppColors.textLight,
@@ -213,39 +197,31 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                 decoration: InputDecoration(
                                   hintText: l10n.max,
                                   prefixText: 'FCFA ',
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 12),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
                                   border: OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                        color: AppColors.divider),
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide:
+                                        BorderSide(color: AppColors.divider),
                                   ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                        color: AppColors.divider),
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide:
+                                        BorderSide(color: AppColors.divider),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(10),
                                     borderSide: const BorderSide(
-                                        color: AppColors.primary,
-                                        width: 1.5),
+                                        color: AppColors.primary, width: 1.5),
                                   ),
                                 ),
                               ),
                             ),
                           ]),
                           const SizedBox(height: 20),
-
-                          // Location
                           Text(l10n.locationFilter,
                               style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700)),
+                                  fontSize: 14, fontWeight: FontWeight.w700)),
                           const SizedBox(height: 10),
                           Wrap(
                             spacing: 8,
@@ -253,8 +229,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                             children: _locations.map((loc) {
                               final isSelected = tempLocation == loc;
                               return GestureDetector(
-                                onTap: () => setSheetState(
-                                    () => tempLocation = loc),
+                                onTap: () =>
+                                    setSheetState(() => tempLocation = loc),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 14, vertical: 8),
@@ -262,8 +238,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                     color: isSelected
                                         ? AppColors.primary
                                         : AppColors.background,
-                                    borderRadius:
-                                        BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                       color: isSelected
                                           ? AppColors.primary
@@ -282,13 +257,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                             }).toList(),
                           ),
                           const SizedBox(height: 20),
-
-                          // Sort By
                           Text(l10n.sortBy,
                               style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 10),
+                                  fontSize: 14, fontWeight: FontWeight.w700)),
                           ...sortOptions.map((opt) {
                             return RadioListTile<String>(
                               value: opt['key']!,
@@ -307,26 +278,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       ),
                     ),
                   ),
-
-                  // Apply button
                   Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: ElevatedButton(
                       onPressed: () {
                         setState(() {
                           _selectedLocation = tempLocation;
                           _sortKey = tempSortKey;
-                          _minPrice =
-                              tempMinController.text.trim().isEmpty
-                                  ? null
-                                  : double.tryParse(
-                                      tempMinController.text.trim());
-                          _maxPrice =
-                              tempMaxController.text.trim().isEmpty
-                                  ? null
-                                  : double.tryParse(
-                                      tempMaxController.text.trim());
+                          _minPrice = tempMinController.text.trim().isEmpty
+                              ? null
+                              : double.tryParse(tempMinController.text.trim());
+                          _maxPrice = tempMaxController.text.trim().isEmpty
+                              ? null
+                              : double.tryParse(tempMaxController.text.trim());
                         });
                         Navigator.pop(context);
                       },
@@ -347,11 +311,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     var filtered = docs.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
       final name = (data['name'] as String? ?? '').toLowerCase();
-      final location =
-          (data['location'] as String? ?? '').toLowerCase();
+      final location = (data['location'] as String? ?? '').toLowerCase();
       final category = (data['category'] as String? ?? '');
-      final priceValue =
-          (data['priceValue'] as num?)?.toDouble() ?? 0;
+      final priceValue = (data['priceValue'] as num?)?.toDouble() ?? 0;
 
       final matchesSearch = _searchQuery.isEmpty ||
           name.contains(_searchQuery) ||
@@ -360,10 +322,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           _selectedCategory == 'All' || category == _selectedCategory;
       final matchesLocation = _selectedLocation == 'All' ||
           location.contains(_selectedLocation.toLowerCase());
-      final matchesMinPrice =
-          _minPrice == null || priceValue >= _minPrice!;
-      final matchesMaxPrice =
-          _maxPrice == null || priceValue <= _maxPrice!;
+      final matchesMinPrice = _minPrice == null || priceValue >= _minPrice!;
+      final matchesMaxPrice = _maxPrice == null || priceValue <= _maxPrice!;
 
       return matchesSearch &&
           matchesCategory &&
@@ -372,7 +332,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           matchesMaxPrice;
     }).toList();
 
-    // Sort using internal key
     filtered.sort((a, b) {
       final dataA = a.data() as Map<String, dynamic>;
       final dataB = b.data() as Map<String, dynamic>;
@@ -386,15 +345,12 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         return priceB.compareTo(priceA);
       } else {
         final timeA =
-            (dataA['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ??
-                0;
+            (dataA['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
         final timeB =
-            (dataB['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ??
-                0;
+            (dataB['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
         return timeB.compareTo(timeA);
       }
     });
-
     return filtered;
   }
 
@@ -408,7 +364,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           .limit(20)
           .get();
       if (ordersSnapshot.docs.isEmpty) return [];
-
       final Set<String> purchasedCategories = {};
       for (var order in ordersSnapshot.docs) {
         final category = order.data()['category'] as String?;
@@ -417,14 +372,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         }
       }
       if (purchasedCategories.isEmpty) return [];
-
       final productsSnapshot = await FirebaseFirestore.instance
           .collection('products')
-          .where('category',
-              whereIn: purchasedCategories.take(10).toList())
+          .where('category', whereIn: purchasedCategories.take(10).toList())
           .limit(10)
           .get();
-
       return productsSnapshot.docs
           .where((doc) => doc['sellerId'] != user.uid)
           .map((doc) => {'id': doc.id, ...doc.data()})
@@ -438,37 +390,41 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
-    final firstName =
-        (user?.displayName ?? 'Farmer').split(' ').first;
+    final firstName = (user?.displayName ?? 'Farmer').split(' ').first;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // ── Header ──────────────────────────────────────────────
+            // Header
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Hello, $firstName 👋',
-                            style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textDark)),
-                        Text(l10n.findFreshProducts,
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.textMedium)),
-                      ],
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Hello, $firstName 👋',
+                              style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textDark),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                          Text(l10n.findFreshProducts,
+                              style: TextStyle(
+                                  fontSize: 13, color: AppColors.textMedium),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Row(children: [
-                      // Notifications
                       StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('notifications')
@@ -480,10 +436,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                               ? snapshot.data!.docs.length
                               : 0;
                           return GestureDetector(
-                            onTap: () => Navigator.push(
-                                context,
-                                AppRouter.slide(
-                                    const NotificationsScreen())),
+                            onTap: () => Navigator.push(context,
+                                AppRouter.slide(const NotificationsScreen())),
                             child: Stack(children: [
                               _IconBtn(Icons.notifications_outlined),
                               if (count > 0) _Badge(count),
@@ -492,40 +446,31 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         },
                       ),
                       const SizedBox(width: 10),
-
-                      // Chat
                       StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('chats')
-                            .where('participants',
-                                arrayContains: user?.uid)
+                            .where('participants', arrayContains: user?.uid)
                             .snapshots(),
                         builder: (context, snapshot) {
                           int unread = 0;
                           if (snapshot.hasData) {
                             for (var doc in snapshot.data!.docs) {
-                              final d =
-                                  doc.data() as Map<String, dynamic>;
+                              final d = doc.data() as Map<String, dynamic>;
                               unread +=
-                                  (d['unread_${user?.uid}'] ?? 0)
-                                      as int;
+                                  (d['unread_${user?.uid}'] ?? 0) as int;
                             }
                           }
                           return GestureDetector(
-                            onTap: () => Navigator.push(
-                                context,
+                            onTap: () => Navigator.push(context,
                                 AppRouter.slide(const ChatScreen())),
                             child: Stack(children: [
-                              _IconBtn(
-                                  Icons.chat_bubble_outline_rounded),
+                              _IconBtn(Icons.chat_bubble_outline_rounded),
                               if (unread > 0) _Badge(unread),
                             ]),
                           );
                         },
                       ),
                       const SizedBox(width: 10),
-
-                      // Profile avatar
                       CircleAvatar(
                         radius: 22,
                         backgroundColor: AppColors.primaryLighter,
@@ -546,7 +491,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               ),
             ),
 
-            // ── Search Bar + Filter Button ───────────────────────────
+            // Search + Filter
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -554,8 +499,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _searchController,
-                      onChanged: (value) => setState(
-                          () => _searchQuery = value.toLowerCase()),
+                      onChanged: (value) =>
+                          setState(() => _searchQuery = value.toLowerCase()),
                       decoration: InputDecoration(
                         hintText: l10n.searchHint,
                         prefixIcon: const Icon(Icons.search_rounded,
@@ -576,13 +521,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                             const EdgeInsets.symmetric(vertical: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              BorderSide(color: AppColors.divider),
+                          borderSide: BorderSide(color: AppColors.divider),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              BorderSide(color: AppColors.divider),
+                          borderSide: BorderSide(color: AppColors.divider),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -593,8 +536,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-
-                  // Filter button
                   GestureDetector(
                     onTap: () => _showFilterSheet(l10n),
                     child: Stack(children: [
@@ -632,20 +573,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               ),
             ),
 
-            // ── Active Filters ───────────────────────────────────────
+            // Active Filters
             if (_hasActiveFilters)
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                   child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
+                    spacing: 6, runSpacing: 6,
                     children: [
                       if (_selectedLocation != 'All')
                         _ActiveFilterChip(
                           label: '📍 $_selectedLocation',
-                          onRemove: () => setState(
-                              () => _selectedLocation = 'All'),
+                          onRemove: () =>
+                              setState(() => _selectedLocation = 'All'),
                         ),
                       if (_minPrice != null)
                         _ActiveFilterChip(
@@ -680,8 +620,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                             color: AppColors.danger.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color:
-                                    AppColors.danger.withOpacity(0.3)),
+                                color: AppColors.danger.withOpacity(0.3)),
                           ),
                           child: Text(l10n.clearAll,
                               style: const TextStyle(
@@ -695,7 +634,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 ),
               ),
 
-            // ── Recommendations ──────────────────────────────────────
+            // Recommendations
             SliverToBoxAdapter(
               child: FutureBuilder<List<Map<String, dynamic>>>(
                 future: _loadRecommendations(),
@@ -708,8 +647,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Padding(
-                        padding:
-                            const EdgeInsets.fromLTRB(16, 16, 16, 10),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
                         child: Text(l10n.recommendedForYou,
                             style: const TextStyle(
                                 fontSize: 15,
@@ -720,14 +658,13 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         height: 200,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16),
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: recs.length,
                           itemBuilder: (context, index) {
                             final product = recs[index];
                             return Padding(
-                              padding:
-                                  const EdgeInsets.only(right: 12),
+                              padding: const EdgeInsets.only(right: 12),
                               child: GestureDetector(
                                 onTap: () => Navigator.push(
                                   context,
@@ -740,12 +677,10 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                   width: 140,
                                   decoration: BoxDecoration(
                                     color: AppColors.white,
-                                    borderRadius:
-                                        BorderRadius.circular(14),
+                                    borderRadius: BorderRadius.circular(14),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black
-                                            .withOpacity(0.05),
+                                        color: Colors.black.withOpacity(0.05),
                                         blurRadius: 8,
                                         offset: const Offset(0, 2),
                                       ),
@@ -758,8 +693,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                       ClipRRect(
                                         borderRadius:
                                             const BorderRadius.vertical(
-                                                top:
-                                                    Radius.circular(14)),
+                                                top: Radius.circular(14)),
                                         child: Image.network(
                                           product['imageUrl'] ?? '',
                                           height: 110,
@@ -768,8 +702,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                           errorBuilder: (_, _, _) =>
                                               Container(
                                             height: 110,
-                                            color:
-                                                AppColors.primaryLighter,
+                                            color: AppColors.primaryLighter,
                                             child: const Icon(
                                                 Icons.image_outlined,
                                                 color: AppColors.primary,
@@ -778,35 +711,28 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                         ),
                                       ),
                                       Padding(
-                                        padding:
-                                            const EdgeInsets.all(8),
+                                        padding: const EdgeInsets.all(8),
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                                product['name'] ?? '',
+                                            Text(product['name'] ?? '',
                                                 style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.w700,
+                                                    fontWeight: FontWeight.w700,
                                                     fontSize: 12,
-                                                    color: AppColors
-                                                        .textDark),
+                                                    color: AppColors.textDark),
                                                 maxLines: 1,
-                                                overflow: TextOverflow
-                                                    .ellipsis),
+                                                overflow:
+                                                    TextOverflow.ellipsis),
                                             const SizedBox(height: 4),
-                                            Text(
-                                                product['price'] ?? '',
+                                            Text(product['price'] ?? '',
                                                 style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.w700,
+                                                    fontWeight: FontWeight.w700,
                                                     fontSize: 12,
-                                                    color: AppColors
-                                                        .primary),
+                                                    color: AppColors.primary),
                                                 maxLines: 1,
-                                                overflow: TextOverflow
-                                                    .ellipsis),
+                                                overflow:
+                                                    TextOverflow.ellipsis),
                                           ],
                                         ),
                                       ),
@@ -824,7 +750,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               ),
             ),
 
-            // ── Category Chips ───────────────────────────────────────
+            // Categories
             SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -841,18 +767,16 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     height: 40,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: _categories.length,
                       itemBuilder: (context, index) {
                         final cat = _categories[index];
-                        final isSelected =
-                            _selectedCategory == cat['name'];
+                        final isSelected = _selectedCategory == cat['name'];
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: GestureDetector(
-                            onTap: () => setState(() =>
-                                _selectedCategory = cat['name']!),
+                            onTap: () => setState(
+                                () => _selectedCategory = cat['name']!),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               padding: const EdgeInsets.symmetric(
@@ -861,8 +785,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                 color: isSelected
                                     ? AppColors.primary
                                     : AppColors.white,
-                                borderRadius:
-                                    BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: isSelected
                                       ? AppColors.primary
@@ -889,15 +812,14 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               ),
             ),
 
-            // ── Products Grid ────────────────────────────────────────
+            // Products Grid
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('products')
                   .orderBy('createdAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.only(top: 40),
@@ -908,8 +830,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   );
                 }
 
-                if (!snapshot.hasData ||
-                    snapshot.data!.docs.isEmpty) {
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return SliverToBoxAdapter(
                     child: Center(
                       child: Column(
@@ -921,21 +842,18 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           const SizedBox(height: 12),
                           Text(l10n.noProductsYet,
                               style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16)),
+                                  fontWeight: FontWeight.w600, fontSize: 16)),
                           const SizedBox(height: 6),
                           Text(l10n.beFirstToList,
                               style: TextStyle(
-                                  color: AppColors.textMedium,
-                                  fontSize: 13)),
+                                  color: AppColors.textMedium, fontSize: 13)),
                         ],
                       ),
                     ),
                   );
                 }
 
-                final docs =
-                    _applyFilters(snapshot.data!.docs, l10n);
+                final docs = _applyFilters(snapshot.data!.docs, l10n);
 
                 if (docs.isEmpty) {
                   return SliverToBoxAdapter(
@@ -943,12 +861,10 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       padding: const EdgeInsets.only(top: 40),
                       child: Center(
                         child: Column(children: [
-                          const Text('😕',
-                              style: TextStyle(fontSize: 48)),
+                          const Text('😕', style: TextStyle(fontSize: 48)),
                           const SizedBox(height: 12),
                           Text(l10n.noProductsMatchFilters,
-                              style: TextStyle(
-                                  color: AppColors.textMedium)),
+                              style: TextStyle(color: AppColors.textMedium)),
                           const SizedBox(height: 8),
                           TextButton(
                             onPressed: _clearFilters,
@@ -963,23 +879,20 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 }
 
                 return SliverPadding(
-                  padding:
-                      const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   sliver: SliverGrid(
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 0.70,
+                      childAspectRatio: 0.62,
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final doc = docs[index];
-                        final data =
-                            doc.data() as Map<String, dynamic>;
-                        return _ProductCard(
-                            productId: doc.id, data: data);
+                        final data = doc.data() as Map<String, dynamic>;
+                        return _ProductCard(productId: doc.id, data: data);
                       },
                       childCount: docs.length,
                     ),
@@ -997,195 +910,311 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 class _IconBtn extends StatelessWidget {
   final IconData icon;
   const _IconBtn(this.icon);
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 42, height: 42,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Icon(icon, color: AppColors.primary, size: 22),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        width: 42, height: 42,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.06),
+                blurRadius: 6, offset: const Offset(0, 2))
+          ],
+        ),
+        child: Icon(icon, color: AppColors.primary, size: 22),
+      );
 }
 
 class _Badge extends StatelessWidget {
   final int count;
   const _Badge(this.count);
-
   @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: 0, right: 0,
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: const BoxDecoration(
-            color: AppColors.danger, shape: BoxShape.circle),
-        constraints:
-            const BoxConstraints(minWidth: 18, minHeight: 18),
-        child: Text(
-          count > 99 ? '99+' : '$count',
-          style: const TextStyle(
-              fontSize: 9,
-              color: Colors.white,
-              fontWeight: FontWeight.w700),
-          textAlign: TextAlign.center,
+  Widget build(BuildContext context) => Positioned(
+        top: 0, right: 0,
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: const BoxDecoration(
+              color: AppColors.danger, shape: BoxShape.circle),
+          constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+          child: Text(count > 99 ? '99+' : '$count',
+              style: const TextStyle(
+                  fontSize: 9, color: Colors.white, fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class _ActiveFilterChip extends StatelessWidget {
   final String label;
   final VoidCallback onRemove;
-  const _ActiveFilterChip(
-      {required this.label, required this.onRemove});
-
+  const _ActiveFilterChip({required this.label, required this.onRemove});
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.primaryLighter,
-        borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: AppColors.primary.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: onRemove,
-            child: const Icon(Icons.close_rounded,
-                size: 14, color: AppColors.primary),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLighter,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onRemove,
+              child: const Icon(Icons.close_rounded,
+                  size: 14, color: AppColors.primary),
+            ),
+          ],
+        ),
+      );
 }
 
-class _ProductCard extends StatelessWidget {
+// ── Product Card with Save/Heart Button ───────────────────────────────────────
+class _ProductCard extends StatefulWidget {
   final String productId;
   final Map<String, dynamic> data;
   const _ProductCard({required this.productId, required this.data});
 
   @override
+  State<_ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<_ProductCard> {
+  final currentUser = FirebaseAuth.instance.currentUser;
+  bool _isSaved = false;
+  bool _isToggling = false;
+
+  String get _savedDocId => '${currentUser?.uid}_${widget.productId}';
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfSaved();
+  }
+
+  Future<void> _checkIfSaved() async {
+    if (currentUser == null) return;
+    final doc = await FirebaseFirestore.instance
+        .collection('saved_products')
+        .doc(_savedDocId)
+        .get();
+    if (mounted) setState(() => _isSaved = doc.exists);
+  }
+
+  Future<void> _toggleSave() async {
+    if (currentUser == null || _isToggling) return;
+    setState(() => _isToggling = true);
+
+    try {
+      final ref = FirebaseFirestore.instance
+          .collection('saved_products')
+          .doc(_savedDocId);
+
+      if (_isSaved) {
+        await ref.delete();
+        setState(() => _isSaved = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Removed from saved'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      } else {
+        await ref.set({
+          'userId': currentUser?.uid,
+          'productId': widget.productId,
+          'name': widget.data['name'],
+          'price': widget.data['price'],
+          'imageUrl': widget.data['imageUrl'],
+          'location': widget.data['location'],
+          'category': widget.data['category'],
+          'savedAt': FieldValue.serverTimestamp(),
+        });
+        setState(() => _isSaved = true);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❤️ Product saved!'),
+              backgroundColor: AppColors.primary,
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _isToggling = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final soldOut = widget.data['soldOut'] == true;
+
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        AppRouter.slide(ProductDetailScreen(
-            productId: productId, data: data)),
-      ),
+      onTap: soldOut
+          ? null
+          : () => Navigator.push(
+                context,
+                AppRouter.slide(ProductDetailScreen(
+                    productId: widget.productId, data: widget.data)),
+              ),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
+            BoxShadow(color: Colors.black.withOpacity(0.05),
+                blurRadius: 8, offset: const Offset(0, 2))
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(14)),
-              child: Image.network(
-                data['imageUrl'] ?? '',
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 120,
-                  color: AppColors.primaryLighter,
-                  child: const Icon(Icons.image_outlined,
-                      color: AppColors.primary, size: 40),
-                ),
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
+            // Product image with save button
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(14)),
+                  child: Image.network(
+                    widget.data['imageUrl'] ?? '',
                     height: 120,
-                    color: AppColors.primaryLighter,
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                          color: AppColors.primary, strokeWidth: 2),
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 120,
+                      color: AppColors.primaryLighter,
+                      child: const Icon(Icons.image_outlined,
+                          color: AppColors.primary, size: 40),
                     ),
-                  );
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (data['category'] != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      margin: const EdgeInsets.only(bottom: 4),
-                      decoration: BoxDecoration(
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        height: 120,
                         color: AppColors.primaryLighter,
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                              color: AppColors.primary, strokeWidth: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // ❤️ Save button
+                Positioned(
+                  top: 6, right: 6,
+                  child: GestureDetector(
+                    onTap: _toggleSave,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        _isSaved
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: _isSaved ? AppColors.danger : AppColors.textLight,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Sold out badge
+                if (soldOut)
+                  Positioned(
+                    bottom: 6, left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text(data['category'],
-                          style: const TextStyle(
-                              fontSize: 9,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600)),
-                    ),
-                  Text(data['name'] ?? '',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                          color: AppColors.textDark),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    Icon(Icons.location_on_outlined,
-                        size: 12, color: AppColors.textLight),
-                    const SizedBox(width: 2),
-                    Expanded(
-                      child: Text(data['location'] ?? '',
+                      child: const Text('SOLD OUT',
                           style: TextStyle(
-                              fontSize: 11, color: AppColors.textLight),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800)),
                     ),
-                  ]),
-                  const SizedBox(height: 6),
-                  Text(data['price'] ?? '',
-                      style: const TextStyle(
+                  ),
+              ],
+            ),
+
+            // Product info
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.data['category'] != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        margin: const EdgeInsets.only(bottom: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLighter,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(widget.data['category'],
+                            style: const TextStyle(
+                                fontSize: 9,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    Text(widget.data['name'] ?? '',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: soldOut
+                                ? AppColors.textLight
+                                : AppColors.textDark),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 3),
+                    Row(children: [
+                      Icon(Icons.location_on_outlined,
+                          size: 11, color: AppColors.textLight),
+                      const SizedBox(width: 2),
+                      Expanded(
+                        child: Text(widget.data['location'] ?? '',
+                            style: TextStyle(
+                                fontSize: 11, color: AppColors.textLight),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                    ]),
+                    const SizedBox(height: 4),
+                    Text(
+                      soldOut ? 'Sold Out' : (widget.data['price'] ?? ''),
+                      style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
-                          color: AppColors.primary),
+                          color: soldOut ? AppColors.danger : AppColors.primary),
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                ],
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

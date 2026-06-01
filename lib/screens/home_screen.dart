@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:agrinexa/l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../utils/admin_config.dart';
 import 'marketplace_screen.dart';
 import 'sell_product_screen.dart';
 import 'my_listing_screen.dart';
@@ -23,9 +25,11 @@ class _HomeScreenState extends State<HomeScreen> {
     ProfileScreen(),
   ];
 
+  bool get _isAdmin =>
+      AdminConfig.isAdmin(FirebaseAuth.instance.currentUser?.uid);
+
   @override
   Widget build(BuildContext context) {
-    // Get translations using official Flutter localization
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -47,22 +51,41 @@ class _HomeScreenState extends State<HomeScreen> {
           unselectedLabelStyle: const TextStyle(fontSize: 11),
           elevation: 0,
           items: [
+            // ── Home / Market ──────────────────────────────────────
             BottomNavigationBarItem(
-                icon: const Icon(Icons.home_outlined),
-                activeIcon: const Icon(Icons.home_rounded),
-                label: l10n.navHome),
+              icon: const Icon(Icons.storefront_outlined),
+              activeIcon: const Icon(Icons.storefront_rounded),
+              label: 'Market',
+            ),
+
+            // ── Sell / Discover ────────────────────────────────────
             BottomNavigationBarItem(
-                icon: const Icon(Icons.add_circle_outline_rounded),
-                activeIcon: const Icon(Icons.add_circle_rounded),
-                label: l10n.navSell),
+              icon: Icon(_isAdmin
+                  ? Icons.add_circle_outline_rounded
+                  : Icons.explore_outlined),
+              activeIcon: Icon(_isAdmin
+                  ? Icons.add_circle_rounded
+                  : Icons.explore_rounded),
+              label: _isAdmin ? 'List' : 'Discover',
+            ),
+
+            // ── Listing / My Space ─────────────────────────────────
             BottomNavigationBarItem(
-                icon: const Icon(Icons.list_alt_outlined),
-                activeIcon: const Icon(Icons.list_alt_rounded),
-                label: l10n.navListing),
+              icon: Icon(_isAdmin
+                  ? Icons.inventory_2_outlined
+                  : Icons.favorite_outline_rounded),
+              activeIcon: Icon(_isAdmin
+                  ? Icons.inventory_2_rounded
+                  : Icons.favorite_rounded),
+              label: _isAdmin ? 'Manage' : 'My Space',
+            ),
+
+            // ── Profile ────────────────────────────────────────────
             BottomNavigationBarItem(
-                icon: const Icon(Icons.person_outline_rounded),
-                activeIcon: const Icon(Icons.person_rounded),
-                label: l10n.navProfile),
+              icon: const Icon(Icons.person_outline_rounded),
+              activeIcon: const Icon(Icons.person_rounded),
+              label: l10n.navProfile,
+            ),
           ],
         ),
       ),
