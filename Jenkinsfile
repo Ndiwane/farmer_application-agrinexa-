@@ -7,6 +7,13 @@ pipeline {
     }
 
     stages {
+        stage('Fix Git Safe Directory') {
+            steps {
+                bat 'git config --global --add safe.directory C:/flutter_windows_3.41.2-stable/flutter'
+                bat 'git config --global --add safe.directory *'
+            }
+        }
+
         stage('Clone Code') {
             steps {
                 echo 'Cloning AgriNexa repository...'
