@@ -27,12 +27,11 @@ pipeline {
             }
         }
 
-        stage('Get Dependencies') {
+        stage('Analyze Code') {
             steps {
-                bat 'flutter pub get'
+             bat 'flutter analyze || exit 0'
             }
         }
-
         stage('Analyze Code') {
             steps {
                 bat 'flutter analyze'
