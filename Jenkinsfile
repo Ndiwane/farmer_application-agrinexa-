@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+
+    environment {
+        FLUTTER_HOME = 'C:\\flutter_windows_3.41.2-stable\\flutter'
+        PATH = "${FLUTTER_HOME}\\bin;${env.PATH}"
+    }
+
+    stages {
+        stage('Clone Code') {
+            steps {
+                echo 'Cloning AgriNexa repository...'
+                checkout scm
+            }
+        }
+
+        stage('Flutter Doctor') {
+            steps {
+                bat 'flutter doctor'
+            }
+        }
+
+        stage('Get Dependencies') {
+            steps {
+                bat 'flutter pub get'
+            }
+        }
+
+        stage('Analyze Code') {
+            steps {
+                bat 'flutter analyze'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                bat 'flutter test'
+            }
+        }
+
+        stage('Build APK') {
+            steps {
+                bat 'flutter build apk --release'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ AgriNexa Build Successful!'
+        }
+        failure {
+            echo '❌ AgriNexa Build Failed! Check the logs.'
+        }
+    }
+}
