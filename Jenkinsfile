@@ -61,3 +61,9 @@ pipeline {
         }
     }
 }
+environment {
+    FLUTTER_HOME = 'C:\\flutter_windows_3.41.2-stable\\flutter'
+    ANDROID_HOME = 'C:\\Users\\ndiwa\\AppData\\Local\\Android\\Sdk'
+    ANDROID_SDK_ROOT = 'C:\\Users\\ndiwa\\AppData\\Local\\Android\\Sdk'
+    PATH = "${FLUTTER_HOME}\\bin;${ANDROID_HOME}\\platform-tools;${env.PATH}"
+}
