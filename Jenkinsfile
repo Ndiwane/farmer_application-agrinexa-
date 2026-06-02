@@ -52,6 +52,14 @@ pipeline {
                 bat 'flutter build apk --release'
             }
         }
+
+        stage('Archive APK') {
+            steps {
+                archiveArtifacts artifacts: 'build/app/outputs/flutter-apk/app-release.apk',
+                                 fingerprint: true,
+                                 onlyIfSuccessful: true
+            }
+        }
     }
 
     post {
