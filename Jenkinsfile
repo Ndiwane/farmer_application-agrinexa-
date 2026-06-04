@@ -1,13 +1,11 @@
 pipeline {
     agent any
-
     environment {
         FLUTTER_HOME = 'C:\\flutter_windows_3.41.2-stable\\flutter'
         ANDROID_HOME = 'C:\\Users\\ndiwa\\AppData\\Local\\Android\\Sdk'
         ANDROID_SDK_ROOT = 'C:\\Users\\ndiwa\\AppData\\Local\\Android\\Sdk'
         PATH = "${FLUTTER_HOME}\\bin;${ANDROID_HOME}\\platform-tools;${env.PATH}"
     }
-
     stages {
         stage('Fix Git Safe Directory') {
             steps {
@@ -15,44 +13,37 @@ pipeline {
                 bat 'git config --global --add safe.directory *'
             }
         }
-
         stage('Clone Code') {
             steps {
                 echo 'Cloning AgriNexa repository...'
                 checkout scm
             }
         }
-
         stage('Flutter Doctor') {
             steps {
                 bat 'flutter doctor'
             }
         }
-
         stage('Get Dependencies') {
             steps {
                 bat 'flutter pub get'
             }
         }
-
         stage('Analyze Code') {
             steps {
                 bat 'flutter analyze || exit 0'
             }
         }
-
         stage('Run Tests') {
             steps {
                 bat 'flutter test'
             }
         }
-
         stage('Build APK') {
             steps {
                 bat 'flutter build apk --release'
             }
         }
-
         stage('Archive APK') {
             steps {
                 archiveArtifacts artifacts: 'build/app/outputs/flutter-apk/app-release.apk',
@@ -61,14 +52,13 @@ pipeline {
             }
         }
     }
-
     post {
         success {
-            echo '✅ AgriNexa Build Successful!'
+            echo 'AgriNexa Build Successful!'
             emailext(
-                subject: "✅ AgriNexa Build #${BUILD_NUMBER} - SUCCESS",
+                subject: "AgriNexa Build #${BUILD_NUMBER} - SUCCESS",
                 body: """
-                    <h2>✅ AgriNexa CI Build Successful!</h2>
+                    <h2 style='color:green'>AgriNexa CI Build Successful!</h2>
                     <p><b>Build Number:</b> ${BUILD_NUMBER}</p>
                     <p><b>Branch:</b> ${GIT_BRANCH}</p>
                     <p><b>Duration:</b> ${currentBuild.durationString}</p>
@@ -80,11 +70,11 @@ pipeline {
             )
         }
         failure {
-            echo '❌ AgriNexa Build Failed! Check the logs.'
+            echo 'AgriNexa Build Failed! Check the logs.'
             emailext(
-                subject: "❌ AgriNexa Build #${BUILD_NUMBER} - FAILED",
+                subject: "AgriNexa Build #${BUILD_NUMBER} - FAILED",
                 body: """
-                    <h2>❌ AgriNexa CI Build Failed!</h2>
+                    <h2 style='color:red'>AgriNexa CI Build Failed!</h2>
                     <p><b>Build Number:</b> ${BUILD_NUMBER}</p>
                     <p><b>Branch:</b> ${GIT_BRANCH}</p>
                     <p><b>Duration:</b> ${currentBuild.durationString}</p>
